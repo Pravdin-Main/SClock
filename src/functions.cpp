@@ -1,3 +1,267 @@
+
+#include "header.h"
+#include <LiquidCrystal_I2C.h>
+#include <Adafruit_Sensor.h>
+#include <Adafruit_BME280.h>
+#include <GyverTimer.h>
+#include "RTClib.h"
+
+#if (DISPLAY_TYPE == 1)
+LiquidCrystal_I2C lcd(DISPLAY_ADDR, 20, 4);
+#else
+LiquidCrystal_I2C lcd(DISPLAY_ADDR, 16, 2);
+#endif
+
+#include <GyverButton.h>
+
+GButton button(BTN_PIN, LOW_PULL, NORM_OPEN);
+void drawSensors();
+void redrawPlot();
+
+void drawDig(byte dig, byte x, byte y) {
+  switch (dig) {
+    case 0:
+      lcd.setCursor(x, y); // set cursor to column 0, line 0 (first row)
+      lcd.write(0);  // call each segment to create
+      lcd.write(1);  // top half of the number
+      lcd.write(2);
+      lcd.setCursor(x, y + 1); // set cursor to colum 0, line 1 (second row)
+      lcd.write(3);  // call each segment to create
+      lcd.write(4);  // bottom half of the number
+      lcd.write(5);
+      break;
+    case 1:
+      lcd.setCursor(x + 1, y);
+      lcd.write(1);
+      lcd.write(2);
+      lcd.setCursor(x + 2, y + 1);
+      lcd.write(5);
+      break;
+    case 2:
+      lcd.setCursor(x, y);
+      lcd.write(6);
+      lcd.write(6);
+      lcd.write(2);
+      lcd.setCursor(x, y + 1);
+      lcd.write(3);
+      lcd.write(7);
+      lcd.write(7);
+      break;
+    case 3:
+      lcd.setCursor(x, y);
+      lcd.write(6);
+      lcd.write(6);
+      lcd.write(2);
+      lcd.setCursor(x, y + 1);
+      lcd.write(7);
+      lcd.write(7);
+      lcd.write(5);
+      break;
+    case 4:
+      lcd.setCursor(x, y);
+      lcd.write(3);
+      lcd.write(4);
+      lcd.write(2);
+      lcd.setCursor(x + 2, y + 1);
+      lcd.write(5);
+      break;
+    case 5:
+      lcd.setCursor(x, y);
+      lcd.write(0);
+      lcd.write(6);
+      lcd.write(6);
+      lcd.setCursor(x, y + 1);
+      lcd.write(7);
+      lcd.write(7);
+      lcd.write(5);
+      break;
+    case 6:
+      lcd.setCursor(x, y);
+      lcd.write(0);
+      lcd.write(6);
+      lcd.write(6);
+      lcd.setCursor(x, y + 1);
+      lcd.write(3);
+      lcd.write(7);
+      lcd.write(5);
+      break;
+    case 7:
+      lcd.setCursor(x, y);
+      lcd.write(1);
+      lcd.write(1);
+      lcd.write(2);
+      lcd.setCursor(x + 1, y + 1);
+      lcd.write(0);
+      break;
+    case 8:
+      lcd.setCursor(x, y);
+      lcd.write(0);
+      lcd.write(6);
+      lcd.write(2);
+      lcd.setCursor(x, y + 1);
+      lcd.write(3);
+      lcd.write(7);
+      lcd.write(5);
+      break;
+    case 9:
+      lcd.setCursor(x, y);
+      lcd.write(0);
+      lcd.write(6);
+      lcd.write(2);
+      lcd.setCursor(x + 1, y + 1);
+      lcd.write(4);
+      lcd.write(5);
+      break;
+    case 10:
+      lcd.setCursor(x, y);
+      lcd.write(32);
+      lcd.write(32);
+      lcd.write(32);
+      lcd.setCursor(x, y + 1);
+      lcd.write(32);
+      lcd.write(32);
+      lcd.write(32);
+      break;
+  }
+}
+
+void drawdots(byte x, byte y, boolean state) {
+  byte code;
+  if (state) code = 165;
+  else code = 32;
+  lcd.setCursor(x, y);
+  lcd.write(code);
+  lcd.setCursor(x, y + 1);
+  lcd.write(code);
+}
+
+void drawClock(byte hours, byte minutes, byte x, byte y, boolean dotState) {
+  // чисти чисти!
+  lcd.setCursor(x, y);
+  lcd.print("               ");
+  lcd.setCursor(x, y + 1);
+  lcd.print("               ");
+
+  //if (hours > 23 || minutes > 59) return;
+  if (hours / 10 == 0) drawDig(10, x, y);
+  else drawDig(hours / 10, x, y);
+  drawDig(hours % 10, x + 4, y);
+  // тут должны быть точки. Отдельной функцией
+  drawDig(minutes / 10, x + 8, y);
+  drawDig(minutes % 10, x + 12, y);
+}
+
+void drawData() {
+  lcd.setCursor(15, 0);
+  if (now.day() < 10) lcd.print(0);
+  lcd.print(now.day());
+  lcd.print(".");
+  if (now.month() < 10) lcd.print(0);
+  lcd.print(now.month());
+
+  if (DISP_MODE == 0) {
+    lcd.setCursor(16, 1);
+    lcd.print(now.year());
+  } else if (DISP_MODE == 1) {
+    lcd.setCursor(16, 1);
+    int dayofweek = now.dayOfTheWeek();
+    lcd.print(dayNames[dayofweek]);
+  }
+}
+
+void drawPlot(byte pos, byte row, byte width, byte height, int min_val, int max_val, int *plot_array, String label) {
+  int max_value = -32000;
+  int min_value = 32000;
+
+  for (byte i = 0; i < 15; i++) {
+    if (plot_array[i] > max_value) max_value = plot_array[i];
+    if (plot_array[i] < min_value) min_value = plot_array[i];
+  }
+  lcd.setCursor(16, 0); lcd.print(max_value);
+  lcd.setCursor(16, 1); lcd.print(label);
+  lcd.setCursor(16, 2); lcd.print(plot_array[14]);
+  lcd.setCursor(16, 3); lcd.print(min_value);
+
+  for (byte i = 0; i < width; i++) {                  // каждый столбец параметров
+    int fill_val = plot_array[i];
+    fill_val = constrain(fill_val, min_val, max_val);
+    byte infill, fract;
+    // найти количество целых блоков с учётом минимума и максимума для отображения на графике
+    if (plot_array[i] > min_val)
+      infill = floor((float)(plot_array[i] - min_val) / (max_val - min_val) * height * 10);
+    else infill = 0;
+    fract = (float)(infill % 10) * 8 / 10;                   // найти количество оставшихся полосок
+    infill = infill / 10;
+
+    for (byte n = 0; n < height; n++) {     // для всех строк графика
+      if (n < infill && infill > 0) {       // пока мы ниже уровня
+        lcd.setCursor(i, (row - n));        // заполняем полными ячейками
+        lcd.write(0);
+      }
+      if (n >= infill) {                    // если достигли уровня
+        lcd.setCursor(i, (row - n));
+        if (fract > 0) lcd.write(fract);          // заполняем дробные ячейки
+        else lcd.write(16);                       // если дробные == 0, заливаем пустой
+        for (byte k = n + 1; k < height; k++) {   // всё что сверху заливаем пустыми
+          lcd.setCursor(i, (row - k));
+          lcd.write(16);
+        }
+        break;
+      }
+    }
+  }
+}
+
+void loadClock() {
+  lcd.createChar(0, LT);
+  lcd.createChar(1, UB);
+  lcd.createChar(2, RT);
+  lcd.createChar(3, LL);
+  lcd.createChar(4, LB);
+  lcd.createChar(5, LR);
+  lcd.createChar(6, UMB);
+  lcd.createChar(7, LMB);
+}
+
+void loadPlot() {
+  lcd.createChar(0, row8);
+  lcd.createChar(1, row1);
+  lcd.createChar(2, row2);
+  lcd.createChar(3, row3);
+  lcd.createChar(4, row4);
+  lcd.createChar(5, row5);
+  lcd.createChar(6, row6);
+  lcd.createChar(7, row7);
+}
+
+void setLED(byte color) {
+  // сначала всё выключаем
+  if (!LED_MODE) {
+    analogWrite(LED_R, 0);
+    analogWrite(LED_G, 0);
+    analogWrite(LED_B, 0);
+  } else {
+    analogWrite(LED_R, 255);
+    analogWrite(LED_G, 255);
+    analogWrite(LED_B, 255);
+  }
+  switch (color) {    // 0 выкл, 1 красный, 2 зелёный, 3 синий (или жёлтый)
+    case 0:
+      break;
+    case 1: analogWrite(LED_R, LED_ON);
+      break;
+    case 2: analogWrite(LED_G, LED_ON);
+      break;
+    case 3:
+      if (!BLUE_YELLOW) analogWrite(LED_B, LED_ON);
+      else {
+        analogWrite(LED_R, LED_ON - 50);    // чутка уменьшаем красный
+        analogWrite(LED_G, LED_ON);
+      }
+      break;
+  }
+}
+
 void checkBrightness() {
   if (analogRead(PHOTO) < BRIGHT_THRESHOLD) {   // если темно
     analogWrite(BACKLIGHT, LCD_BRIGHT_MIN);
