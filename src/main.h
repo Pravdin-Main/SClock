@@ -17,7 +17,7 @@
 
 #define BLUE_YELLOW 1       // жёлтый цвет вместо синего (1 да, 0 нет) но из за особенностей подключения жёлтый не такой яркий
 #define DISP_MODE 1         // в правом верхнем углу отображать: 0 - год, 1 - день недели, 2 - секунды
-#define WEEK_LANG 1         // язык дня недели: 0 - английский, 1 - русский (транслит)
+#define WEEK_LANG 0         // язык дня недели: 0 - английский, 1 - русский (транслит)
 
 #if (LED_MODE == 0)
 byte LED_ON = (LED_BRIGHT_MAX);
@@ -25,28 +25,6 @@ byte LED_OFF = (LED_BRIGHT_MIN);
 #else
 byte LED_ON = (255 - LED_BRIGHT_MAX);
 byte LED_OFF = (255 - LED_BRIGHT_MIN);
-#endif
-
-#if (WEEK_LANG == 0)
-static const char *dayNames[]  = {
-  "Sund",
-  "Mond",
-  "Tues",
-  "Wedn",
-  "Thur",
-  "Frid",
-  "Satu",
-};
-#else
-static const char *dayNames[]  = {
-  "BOCK",
-  "POND",
-  "BTOP",
-  "CPED",
-  "4ETB",
-  "5YAT",
-  "CYBB",
-};
 #endif
 
 #define DEBUG 0             // вывод на дисплей лог инициализации датчиков при запуске. Для дисплея 1602 не работает! Но дублируется через порт!
@@ -149,9 +127,11 @@ uint8_t LMB[8] = {0b11111,  0b00000,  0b00000,  0b00000,  0b00000,  0b11111,  0b
 #include <Adafruit_BME280.h>
 #define SEALEVELPRESSURE_HPA (1013.25)
 Adafruit_BME280 bme;
-#include "RTClib.h"
+
+#include <RTClib.h>
 RTC_DS3231 rtc;
 DateTime now;
+
 #include <GyverTimer.h>
 GTimer_ms sensorsTimer(SENS_TIME);
 GTimer_ms drawSensorsTimer(SENS_TIME);
@@ -161,5 +141,12 @@ GTimer_ms dayPlotTimer((long)1.6 * 60 * 60 * 1000);   // 1.6 часа
 GTimer_ms plotTimer(240000);
 GTimer_ms predictTimer((long)10 * 60 * 1000);         // 10 минут
 GTimer_ms brightTimer(2000);
+
+#include <LiquidCrystal_I2C.h>
+#if (DISPLAY_TYPE == 1)
+LiquidCrystal_I2C lcd(DISPLAY_ADDR, 20, 4);
+#else
+LiquidCrystal_I2C lcd(DISPLAY_ADDR, 16, 2);
+#endif
 
 #endif

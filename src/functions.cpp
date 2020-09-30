@@ -1,20 +1,42 @@
-
-#include "header.h"
+#include <Arduino.h>
 #include <LiquidCrystal_I2C.h>
 #include <Adafruit_Sensor.h>
 #include <Adafruit_BME280.h>
 #include <GyverTimer.h>
-#include "RTClib.h"
+#include <RTClib.h>
+#include "main.h"
 
-#if (DISPLAY_TYPE == 1)
+/*#if (DISPLAY_TYPE == 1)
 LiquidCrystal_I2C lcd(DISPLAY_ADDR, 20, 4);
 #else
 LiquidCrystal_I2C lcd(DISPLAY_ADDR, 16, 2);
+#endif*/
+
+#if (WEEK_LANG == 0)
+static const char *dayNames[]  = {
+  "Sund",
+  "Mond",
+  "Tues",
+  "Wedn",
+  "Thur",
+  "Frid",
+  "Satu",
+};
+#else
+static const char *dayNames[]  = {
+  "BOCK",
+  "POND",
+  "BTOP",
+  "CPED",
+  "4ETB",
+  "5YAT",
+  "CYBB",
+};
 #endif
 
 #include <GyverButton.h>
-
 GButton button(BTN_PIN, LOW_PULL, NORM_OPEN);
+
 void drawSensors();
 void redrawPlot();
 

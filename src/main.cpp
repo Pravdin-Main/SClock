@@ -28,13 +28,13 @@
 
 // библиотеки
 #include <Arduino.h>
-#include "header.h"
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
 #include <Adafruit_Sensor.h>
 #include <GyverTimer.h>
-#include "GyverButton.h"
-#include "functions.cpp"
+#include <GyverButton.h>
+#include "main.h"
+#include "functions.h"
 /*void drawDig();
 void drawdots();
 void drawClock();
