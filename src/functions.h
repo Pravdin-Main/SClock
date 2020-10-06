@@ -4,7 +4,8 @@
 #include <Arduino.h>
 #include <LiquidCrystal_I2C.h>
 #include <Adafruit_Sensor.h>
-#include <Adafruit_BME280.h>
+//#include <Adafruit_BME280.h>
+#include <cactus_io_BME280_I2C.h>
 #include <GyverTimer.h>
 #include <RTClib.h>
 

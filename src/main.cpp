@@ -110,7 +110,7 @@ void setup() {
   lcd.print(F("BME280... "));
   Serial.print(F("BME280... "));
   delay(50);
-  if (bme.begin(&Wire)) {
+  if (bme.begin()) {
     lcd.print(F("OK"));
     Serial.println(F("OK"));
   } else {
@@ -143,14 +143,15 @@ void setup() {
   mhz19.setAutoCalibration(false);
 #endif
   rtc.begin();
-  bme.begin(&Wire);
+  bme.begin();
+  bme.setTempCal(-1);
 #endif
 
-  bme.setSampling(Adafruit_BME280::MODE_FORCED,
+  /*bme.setSampling(Adafruit_BME280::MODE_FORCED,
                   Adafruit_BME280::SAMPLING_X1, // temperature
                   Adafruit_BME280::SAMPLING_X1, // pressure
                   Adafruit_BME280::SAMPLING_X1, // humidity
-                  Adafruit_BME280::FILTER_OFF   );
+                  Adafruit_BME280::FILTER_OFF   );*/
 
   if (RESET_CLOCK || rtc.lostPower())
     rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
@@ -160,8 +161,8 @@ void setup() {
   mins = now.minute();
   hrs = now.hour();
 
-  bme.takeForcedMeasurement();
-  uint32_t Pressure = bme.readPressure();
+  bme.readSensor();
+  uint32_t Pressure = bme.getPressure_MB();
   for (byte i = 0; i < 6; i++) {   // счётчик от 0 до 5
     pressure_array[i] = Pressure;  // забить весь массив текущим давлением
     time_array[i] = i;             // забить массив времени числами 0 - 5

@@ -1,7 +1,8 @@
 #include <Arduino.h>
 #include <LiquidCrystal_I2C.h>
 #include <Adafruit_Sensor.h>
-#include <Adafruit_BME280.h>
+//#include <Adafruit_BME280.h>
+#include <cactus_io_BME280_I2C.h>
 #include <GyverTimer.h>
 #include <RTClib.h>
 #include "main.h"
@@ -361,10 +362,10 @@ void redrawPlot() {
 }
 
 void readSensors() {
-  bme.takeForcedMeasurement();
-  dispTemp = bme.readTemperature();
-  dispHum = bme.readHumidity();
-  dispPres = (float)bme.readPressure() * 0.00750062;
+  bme.readSensor();
+  dispTemp = bme.getTemperature_C();
+  dispHum = bme.getHumidity();
+  dispPres = (float)bme.getPressure_MB() * 0.750062;
 #if (CO2_SENSOR == 1)
   dispCO2 = mhz19.getPPM();
 
@@ -462,8 +463,8 @@ void plotSensorsTick() {
     // тут делаем линейную аппроксимацию для предсказания погоды
     long averPress = 0;
     for (byte i = 0; i < 10; i++) {
-      bme.takeForcedMeasurement();
-      averPress += bme.readPressure();
+      bme.readSensor();
+      averPress += bme.getPressure_MB();
       delay(1);
     }
     averPress /= 10;

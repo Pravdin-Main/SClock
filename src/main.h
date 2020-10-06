@@ -124,9 +124,12 @@ uint8_t LR[8] = {0b11111,  0b11111,  0b11111,  0b11111,  0b11111,  0b11111,  0b1
 uint8_t UMB[8] = {0b11111,  0b11111,  0b11111,  0b00000,  0b00000,  0b00000,  0b11111,  0b11111};
 uint8_t LMB[8] = {0b11111,  0b00000,  0b00000,  0b00000,  0b00000,  0b11111,  0b11111,  0b11111};
 
-#include <Adafruit_BME280.h>
+/*#include <Adafruit_BME280.h>
 #define SEALEVELPRESSURE_HPA (1013.25)
-Adafruit_BME280 bme;
+Adafruit_BME280 bme;*/
+#include <cactus_io_BME280_I2C.h>
+BME280_I2C bme(0x76);
+
 
 #include <RTClib.h>
 RTC_DS3231 rtc;
