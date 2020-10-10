@@ -51,6 +51,8 @@ void drawSensors();
 void plotSensorsTick();
 void clockTick();*/
 
+//------------------------SETUP-----------------------
+
 void setup() {
   Serial.begin(9600);
 
@@ -67,6 +69,8 @@ void setup() {
   lcd.init();
   lcd.backlight();
   lcd.clear();
+
+//---------------------DEBUG--------------------------------
 
 #if (DEBUG == 1 && DISPLAY_TYPE == 1)
   boolean status = true;
@@ -138,6 +142,8 @@ void setup() {
   }
 #else
 
+//--------------------------DEBUG END----------------------------
+
 #if (CO2_SENSOR == 1)
   mhz19.begin(MHZ_TX, MHZ_RX);
   mhz19.setAutoCalibration(false);
@@ -156,26 +162,12 @@ void setup() {
   if (RESET_CLOCK || rtc.lostPower())
     rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
 
-  now = rtc.now();
-  secs = now.second();
-  mins = now.minute();
-  hrs = now.hour();
-
-  bme.readSensor();
-  uint32_t Pressure = bme.getPressure_MB();
-  for (byte i = 0; i < 6; i++) {   // счётчик от 0 до 5
-    pressure_array[i] = Pressure;  // забить весь массив текущим давлением
-    time_array[i] = i;             // забить массив времени числами 0 - 5
-  }
-
-  if (DISPLAY_TYPE == 1) {
-    loadClock();
-    drawClock(hrs, mins, 0, 0, 1);
-    drawData();
-  }
-  readSensors();
-  drawSensors();
+  
+  void inition ();
+ 
 }
+
+//----------------------LOOP--------------------------
 
 void loop() {
   if (brightTimer.isReady()) checkBrightness(); // яркость

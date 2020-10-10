@@ -6,6 +6,39 @@
 #include <GyverTimer.h>
 #include <RTClib.h>
 #include "main.h"
+#include "functions.h"
+
+int8_t hrs, mins, secs;
+//byte mode = 0;
+/*
+  0 часы и данные
+  1 график температуры за час
+  2 график температуры за сутки
+  3 график влажности за час
+  4 график влажности за сутки
+  5 график давления за час
+  6 график давления за сутки
+  7 график углекислого за час
+  8 график углекислого за сутки
+*/
+
+// переменные для вывода
+float dispTemp;
+byte dispHum;
+int dispPres;
+int dispCO2;
+int dispRain;
+
+// массивы графиков
+int tempHour[15], tempDay[15];
+int humHour[15], humDay[15];
+int pressHour[15], pressDay[15];
+int co2Hour[15], co2Day[15];
+int delta;
+uint32_t pressure_array[6];
+uint32_t sumX, sumY, sumX2, sumXY;
+float a, b;
+byte time_array[6];
 
 /*#if (DISPLAY_TYPE == 1)
 LiquidCrystal_I2C lcd(DISPLAY_ADDR, 20, 4);
@@ -526,3 +559,35 @@ void clockTick() {
     else setLED(0);
   }
 }
+
+void inition () {
+    now = rtc.now();
+    secs = now.second();
+    mins = now.minute();
+    hrs = now.hour();
+
+    bme.readSensor();
+    uint32_t Pressure = bme.getPressure_MB();
+    for (byte i = 0; i < 6; i++) {   // счётчик от 0 до 5
+      pressure_array[i] = Pressure;  // забить весь массив текущим давлением
+      time_array[i] = i;             // забить массив времени числами 0 - 5
+  }
+
+   if (DISPLAY_TYPE == 1) {
+    loadClock();
+    drawClock(hrs, mins, 0, 0, 1);
+    drawData();
+   }
+   readSensors();
+   drawSensors();
+}
+
+void alarm (){
+
+}
+
+void alarmTuning (){
+  
+}
+
+

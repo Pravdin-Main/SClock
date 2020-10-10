@@ -1,0 +1,11 @@
+# Datatypes (KEYWORD1)
+# Methods and Functions (KEYWORD2)
+# Constants (LITERAL1)
+
+QBPlay KEYWORD1
+start KEYWORD2
+stop KEYWORD2
+touch KEYWORD2
+play KEYWORD2
+repeat KEYWORD2
+QBPlay_REPEAT LITERAL1

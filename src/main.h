@@ -1,5 +1,5 @@
-#ifndef HEADER_H
-#define HEADER_H
+#ifndef main_h
+#define main_h
 
 #include <Arduino.h>
 // ------------------------- НАСТРОЙКИ --------------------
@@ -15,7 +15,7 @@
 #define LCD_BRIGHT_MAX 255    // макс яркость подсветки дисплея (0 - 255)
 #define LCD_BRIGHT_MIN 10     // мин яркость подсветки дисплея (0 - 255)
 
-#define BLUE_YELLOW 1       // жёлтый цвет вместо синего (1 да, 0 нет) но из за особенностей подключения жёлтый не такой яркий
+#define BLUE_YELLOW 0       // жёлтый цвет вместо синего (1 да, 0 нет) но из за особенностей подключения жёлтый не такой яркий
 #define DISP_MODE 1         // в правом верхнем углу отображать: 0 - год, 1 - день недели, 2 - секунды
 #define WEEK_LANG 0         // язык дня недели: 0 - английский, 1 - русский (транслит)
 
@@ -53,8 +53,6 @@ MHZ19_uart mhz19;
 // стоковый адрес был 0x77, у китайского модуля адрес 0x76.
 // Так что если юзаете НЕ библиотеку из архива - не забудьте поменять
 
-// если дисплей не заводится - поменяйте адрес (строка 54)
-
 // пины
 #define BACKLIGHT 10        // Подсветка дисплея
 #define PHOTO A3            // Фоторезистор
@@ -68,11 +66,12 @@ MHZ19_uart mhz19;
 #define LED_B 5             // Синяя нога светодиода
 #define BTN_PIN 4           // Сенсорная кнопка
 
-#define BL_PIN 10     // пин подсветки дисплея
 #define PHOTO_PIN 0   // пин фоторезистора
 
-int8_t hrs, mins, secs;
-byte mode = 0;
+#define BUZZER 8 // Динамикы
+
+/*int8_t hrs, mins, secs;
+byte mode = 0;*/
 /*
   0 часы и данные
   1 график температуры за час
@@ -85,7 +84,7 @@ byte mode = 0;
   8 график углекислого за сутки
 */
 
-// переменные для вывода
+/*// переменные для вывода
 float dispTemp;
 byte dispHum;
 int dispPres;
@@ -101,7 +100,7 @@ int delta;
 uint32_t pressure_array[6];
 uint32_t sumX, sumY, sumX2, sumXY;
 float a, b;
-byte time_array[6];
+byte time_array[6];*/
 
 // символы
 // график
@@ -151,5 +150,21 @@ LiquidCrystal_I2C lcd(DISPLAY_ADDR, 20, 4);
 #else
 LiquidCrystal_I2C lcd(DISPLAY_ADDR, 16, 2);
 #endif
+
+/*void drawDig(byte dig, byte x, byte y);
+void drawdots(byte x, byte y, boolean state);
+void drawClock(byte hours, byte minutes, byte x, byte y, boolean dotState);
+void drawData();
+void drawPlot(byte pos, byte row, byte width, byte height, int min_val, int max_val, int *plot_array, String label);
+void loadClock();
+void loadPlot();
+void setLED(byte color);
+void checkBrightness();
+void modesTick();
+void redrawPlot();
+void readSensors();
+void drawSensors();
+void plotSensorsTick();
+void clockTick();*/
 
 #endif
