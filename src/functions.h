@@ -7,7 +7,9 @@
 //#include <Adafruit_BME280.h>
 #include <cactus_io_BME280_I2C.h>
 #include <GyverTimer.h>
-#include <RTClib.h>
+#include <QBPlay.h>
+QBPlay* play;
+const byte buzzer = A7; // Динамики
 
 byte mode = 0;
 /*
@@ -38,7 +40,8 @@ void drawSensors();
 void plotSensorsTick();
 void clockTick();
 void inition ();
-void alarm();
+void wakeUP();
 void alarmTuning();
+void alarmControl();
 
 #endif

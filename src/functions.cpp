@@ -7,6 +7,8 @@
 #include <RTClib.h>
 #include "main.h"
 #include "functions.h"
+#include <GyverEncoder.h>
+#include <QBPlay.h>
 
 int8_t hrs, mins, secs;
 //byte mode = 0;
@@ -21,6 +23,8 @@ int8_t hrs, mins, secs;
   7 график углекислого за час
   8 график углекислого за сутки
 */
+
+//static boolean alarm_ON;
 
 // переменные для вывода
 float dispTemp;
@@ -582,12 +586,23 @@ void inition () {
    drawSensors();
 }
 
-void alarm (){
+void wakeUP(){
 
 }
 
-void alarmTuning (){
-  
+class alarm {
+  public:
+  static void set(uint8_t hour, uint8_t minute);
+  static uint8_t get();
+  private:
+  uint8_t wakeHour;
+  uint8_t wakeMinute;
+};
+void alarmTuning(){
+
+  alarm_ON = true;
 }
 
+void alarmControl(){
 
+}

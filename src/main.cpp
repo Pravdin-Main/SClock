@@ -33,23 +33,9 @@
 #include <Adafruit_Sensor.h>
 #include <GyverTimer.h>
 #include <GyverButton.h>
+#include <GyverEncoder.h>
 #include "main.h"
 #include "functions.h"
-/*void drawDig();
-void drawdots();
-void drawClock();
-void drawData();
-void drawPlot();
-void loadClock();
-void loadPlot();
-void setLED();
-void checkBrightness();
-void modesTick();
-void redrawPlot();
-void readSensors();
-void drawSensors();
-void plotSensorsTick();
-void clockTick();*/
 
 //------------------------SETUP-----------------------
 
@@ -162,16 +148,19 @@ void setup() {
   if (RESET_CLOCK || rtc.lostPower())
     rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
 
-  
-  void inition ();
+play = new QBPlay(buzzer);
+void inition (); // Взять текущее время и показания с датчиков и вывести на экран
  
 }
 
 //----------------------LOOP--------------------------
 
 void loop() {
-  if (brightTimer.isReady()) checkBrightness(); // яркость
-  if (sensorsTimer.isReady()) readSensors();    // читаем показания датчиков с периодом SENS_TIME
+  if (brightTimer.isReady()) checkBrightness();           // яркость
+  if (sensorsTimer.isReady()) readSensors();              // читаем показания датчиков с периодом SENS_TIME
+  if (checkAlarm.isReady() && alarm_ON) alarmControl();   // если будильник установлен, проверить соответствие времени   
+  if (enc.isHolded()) alarmTuning();                      // усли нажата кнопка энкодера, войти в режим установки будильника
+  if (wakeUP_ON) wakeUP();                                // если будильник сработал, включить звуковой сигнал
 
 #if (DISPLAY_TYPE == 1)
   if (clockTimer.isReady()) clockTick();        // два раза в секунду пересчитываем время и мигаем точками

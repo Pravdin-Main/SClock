@@ -6,6 +6,7 @@
 #define RESET_CLOCK 0       // сброс часов на время загрузки прошивки (для модуля с несъёмной батарейкой). Не забудь поставить 0 и прошить ещё раз!
 #define SENS_TIME 30000     // время обновления показаний сенсоров на экране, миллисекунд
 #define LED_MODE 0          // тип RGB светодиода: 0 - главный катод, 1 - главный анод
+#define ALARMCHECK 10000    // частота проверки времени будильника
 
 // управление яркостью
 #define BRIGHT_CONTROL 1      // 0/1 - запретить/разрешить управление яркостью (при отключении яркость всегда будет макс.)
@@ -68,7 +69,9 @@ MHZ19_uart mhz19;
 
 #define PHOTO_PIN 0   // пин фоторезистора
 
-#define BUZZER 8 // Динамикы
+#define CLK 12    // пин CLK энкодера
+#define DT 11     // пин DT  энкодера
+#define SW 8      // пин SW энкодера
 
 /*int8_t hrs, mins, secs;
 byte mode = 0;*/
@@ -143,6 +146,7 @@ GTimer_ms dayPlotTimer((long)1.6 * 60 * 60 * 1000);   // 1.6 часа
 GTimer_ms plotTimer(240000);
 GTimer_ms predictTimer((long)10 * 60 * 1000);         // 10 минут
 GTimer_ms brightTimer(2000);
+GTimer_ms checkAlarm(ALARMCHECK);
 
 #include <LiquidCrystal_I2C.h>
 #if (DISPLAY_TYPE == 1)
@@ -151,20 +155,9 @@ LiquidCrystal_I2C lcd(DISPLAY_ADDR, 20, 4);
 LiquidCrystal_I2C lcd(DISPLAY_ADDR, 16, 2);
 #endif
 
-/*void drawDig(byte dig, byte x, byte y);
-void drawdots(byte x, byte y, boolean state);
-void drawClock(byte hours, byte minutes, byte x, byte y, boolean dotState);
-void drawData();
-void drawPlot(byte pos, byte row, byte width, byte height, int min_val, int max_val, int *plot_array, String label);
-void loadClock();
-void loadPlot();
-void setLED(byte color);
-void checkBrightness();
-void modesTick();
-void redrawPlot();
-void readSensors();
-void drawSensors();
-void plotSensorsTick();
-void clockTick();*/
+#include <GyverEncoder.h>
+Encoder enc(CLK, DT, SW, TYPE2);
+extern boolean alarm_ON = false;
+extern boolean wakeUP_ON = false;
 
 #endif
