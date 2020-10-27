@@ -147,6 +147,7 @@ GTimer_ms plotTimer(240000);
 GTimer_ms predictTimer((long)10 * 60 * 1000);         // 10 минут
 GTimer_ms brightTimer(2000);
 GTimer_ms checkAlarm(ALARMCHECK);
+GTimer_ms backToMain(10000);
 
 #include <LiquidCrystal_I2C.h>
 #if (DISPLAY_TYPE == 1)
@@ -157,7 +158,7 @@ LiquidCrystal_I2C lcd(DISPLAY_ADDR, 16, 2);
 
 #include <GyverEncoder.h>
 Encoder enc(CLK, DT, SW, TYPE2);
-extern boolean alarm_ON = false;
-extern boolean wakeUP_ON = false;
+//extern boolean alarm_ON = false;
+//extern boolean wakeUP_ON = false;
 
 #endif

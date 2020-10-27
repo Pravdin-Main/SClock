@@ -7,9 +7,23 @@
 //#include <Adafruit_BME280.h>
 #include <cactus_io_BME280_I2C.h>
 #include <GyverTimer.h>
+#include <GyverButton.h>
+GButton button(BTN_PIN, LOW_PULL, NORM_OPEN);
 #include <QBPlay.h>
 QBPlay* play;
 const byte buzzer = A7; // Динамики
+// Тема из Star Wars
+const char sound1[] = "MNT150L2O3CGP16L16FEDL2>C<GP16L16FEDL2>C<GP16L16F\
+EFL2DP16L16<GGGL2>CGP32L16FEDL2>C<GP16L16FEDL2>C<GP16L16A+AA+L1GL2G.L8<G.\
+L16GL4A.L8A>FEDCL16CDEDP16L8<AL4BL8G.L16GL4A.L8A>FEDCGP8L4D.P8L8<G.L16GL4\
+A.L8A>FEDCL16CDEDP16L8<AL4BP16L8>G.L16GL8>C.L16<A+L8G+.L16GL8F.L16D+L8D.L\
+16CL1GL2G.P16L16GGGL8>CP8L16<CCCL2C.";
+// 
+const char sound2[];
+//
+const char sound3[];
+
+// const custom_t sounds[] = {custom_t{sound1}, custom_t{sound2}, custom_t{sound3}};
 
 byte mode = 0;
 /*
@@ -40,8 +54,34 @@ void drawSensors();
 void plotSensorsTick();
 void clockTick();
 void inition ();
-void wakeUP();
 void alarmTuning();
 void alarmControl();
+class alarm {
+  
+  public:
+    alarm (uint8_t hour, uint8_t minute, uint8_t sound, bool status){
+      set(hour, minute, sound, status);
+    }
+    void set(uint8_t hour, uint8_t minute, uint8_t sound, bool status);
+    uint8_t get_wakeHour();
+    uint8_t get_wakeMinute();
+    uint8_t get_wakeSound();
+    bool get_wakeStatus();
+    bool checkAlarm (uint8_t hour, uint8_t minute);
+    void wakeUP(uint8_t soundNum);
+
+  private:
+    uint8_t wakeHour;
+    uint8_t wakeMinute;
+    uint8_t wakeSound;
+    bool wakeStatus;
+};
+
+struct alarmTune {
+    uint8_t hour;
+    uint8_t minute;
+    uint8_t sound;
+    bool status;
+} alarmTune;
 
 #endif

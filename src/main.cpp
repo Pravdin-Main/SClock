@@ -150,17 +150,18 @@ void setup() {
 
 play = new QBPlay(buzzer);
 void inition (); // Взять текущее время и показания с датчиков и вывести на экран
- 
+
 }
 
 //----------------------LOOP--------------------------
 
 void loop() {
-  if (brightTimer.isReady()) checkBrightness();           // яркость
-  if (sensorsTimer.isReady()) readSensors();              // читаем показания датчиков с периодом SENS_TIME
-  if (checkAlarm.isReady() && alarm_ON) alarmControl();   // если будильник установлен, проверить соответствие времени   
+  if (brightTimer.isReady() ) checkBrightness();          // яркость
+  if (sensorsTimer.isReady() ) readSensors();             // читаем показания датчиков с периодом SENS_TIME
+  if (checkAlarm.isReady() ) {                            // проверить соответствие времени будильника текущему  
+
+  }           
   if (enc.isHolded()) alarmTuning();                      // усли нажата кнопка энкодера, войти в режим установки будильника
-  if (wakeUP_ON) wakeUP();                                // если будильник сработал, включить звуковой сигнал
 
 #if (DISPLAY_TYPE == 1)
   if (clockTimer.isReady()) clockTick();        // два раза в секунду пересчитываем время и мигаем точками
@@ -168,7 +169,16 @@ void loop() {
   modesTick();                                  // тут ловим нажатия на кнопку и переключаем режимы
   if (mode == 0) {                                  // в режиме "главного экрана"
     if (drawSensorsTimer.isReady()) drawSensors();  // обновляем показания датчиков на дисплее с периодом SENS_TIME
-  } else {                                          // в любом из графиков
+    if (enc.isHolded()) mode = 9;
+    if (enc.isHolded() && button.isHold()) mode = 10;
+  } 
+  else if(mode == 9){
+    alarmTuning();
+  }
+  else if(mode == 10){
+
+  }
+  else {                                          // в любом из графиков
     if (plotTimer.isReady()) redrawPlot();          // перерисовываем график
   }
 #else

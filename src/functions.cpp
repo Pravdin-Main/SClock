@@ -73,7 +73,7 @@ static const char *dayNames[]  = {
 #endif
 
 #include <GyverButton.h>
-GButton button(BTN_PIN, LOW_PULL, NORM_OPEN);
+//GButton button(BTN_PIN, LOW_PULL, NORM_OPEN);
 
 void drawSensors();
 void redrawPlot();
@@ -586,21 +586,72 @@ void inition () {
    drawSensors();
 }
 
-void wakeUP(){
+//---------------------ALARM--------------------------------------------------
 
+void alarm::set(uint8_t hour, uint8_t minute, uint8_t sound, bool status) {
+  wakeHour = hour;
+  wakeMinute = minute;
+  wakeSound = sound;
+  wakeStatus = status;    
+};
+
+uint8_t alarm::get_wakeHour(){
+  return wakeHour;
 }
 
-class alarm {
-  public:
-  static void set(uint8_t hour, uint8_t minute);
-  static uint8_t get();
-  private:
-  uint8_t wakeHour;
-  uint8_t wakeMinute;
-};
-void alarmTuning(){
+uint8_t alarm::get_wakeMinute(){
+  return wakeMinute;
+}
 
-  alarm_ON = true;
+uint8_t alarm::get_wakeSound(){
+  return wakeSound;
+}
+
+bool alarm::get_wakeStatus(){
+  return wakeStatus;
+}
+
+bool alarm::checkAlarm (uint8_t hour, uint8_t minute){
+  if(wakeHour == hour && wakeMinute == minute && wakeStatus){
+    return true;
+  }
+  else {
+    return false;
+  }
+}
+
+void alarm::wakeUP(uint8_t soundNum){
+  switch (soundNum) {
+    case 1:
+      play->start((__FlashStringHelper*) sound1);
+      break;
+    case 2:
+      play->start((__FlashStringHelper*) sound2);
+      break;
+    case 3:
+      play->start((__FlashStringHelper*) sound3);
+      break;
+    default:
+      break;
+  }
+  // if (soundNum > len(soundsArray) {
+  //   return
+  // }
+  // play->start((__FlashStringHelper*) soundsArray[soundNum]); 
+}
+
+void alarmTuning(){
+  alarmTune.hour = hrs;
+  alarmTune.minute = mins;
+  alarmTune.sound = 1;
+  alarmTune.status = false;
+  
+  loadClock();
+  lcd.clear();
+  
+  if(backToMain.isReady() || enc.isHolded()){
+    mode = 0;
+  }
 }
 
 void alarmControl(){
