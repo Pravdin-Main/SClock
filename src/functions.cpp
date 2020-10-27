@@ -632,8 +632,10 @@ void alarm::wakeUP(uint8_t soundNum){
       play->start((__FlashStringHelper*) sound3);
       break;
     default:
+      play->start((__FlashStringHelper*) sound3);
       break;
   }
+  return;
   // if (soundNum > len(soundsArray) {
   //   return
   // }
