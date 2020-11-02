@@ -55,7 +55,9 @@ void plotSensorsTick();
 void clockTick();
 void inition ();
 void alarmTuning();
-void alarmControl();
+bool alarmControl();
+void drawAlarmClock(byte hours, byte minutes, byte x, byte y, bool draw);
+void alarmStop();
 class alarm {
   
   public:
@@ -68,13 +70,16 @@ class alarm {
     uint8_t get_wakeSound();
     bool get_wakeStatus();
     bool checkAlarm (uint8_t hour, uint8_t minute);
-    void wakeUP(uint8_t soundNum);
+    void wakeUP();
+    void stop();
+    bool isRunning();
 
   private:
     uint8_t wakeHour;
     uint8_t wakeMinute;
     uint8_t wakeSound;
-    bool wakeStatus;
+    bool wakeStatus = false;
+    bool state = false;
 };
 
 struct alarmTune {
@@ -83,5 +88,10 @@ struct alarmTune {
     uint8_t sound;
     bool status;
 } alarmTune;
+
+bool firstStartFlag = false;
+uint8_t set_alarm;
+static uint8_t set_param;
+bool draw_param;
 
 #endif

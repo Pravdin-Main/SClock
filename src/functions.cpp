@@ -10,7 +10,7 @@
 #include <GyverEncoder.h>
 #include <QBPlay.h>
 
-int8_t hrs, mins, secs;
+static int8_t hrs, mins, secs;
 //byte mode = 0;
 /*
   0 часы и данные
@@ -588,6 +588,7 @@ void inition () {
 
 //---------------------ALARM--------------------------------------------------
 
+alarm alarm1, alarm2, alarm3;
 void alarm::set(uint8_t hour, uint8_t minute, uint8_t sound, bool status) {
   wakeHour = hour;
   wakeMinute = minute;
@@ -620,8 +621,9 @@ bool alarm::checkAlarm (uint8_t hour, uint8_t minute){
   }
 }
 
-void alarm::wakeUP(uint8_t soundNum){
-  switch (soundNum) {
+void alarm::wakeUP(){
+  state = true;
+  switch (wakeSound) {
     case 1:
       play->start((__FlashStringHelper*) sound1);
       break;
@@ -642,20 +644,240 @@ void alarm::wakeUP(uint8_t soundNum){
   // play->start((__FlashStringHelper*) soundsArray[soundNum]); 
 }
 
-void alarmTuning(){
-  alarmTune.hour = hrs;
-  alarmTune.minute = mins;
-  alarmTune.sound = 1;
-  alarmTune.status = false;
+void alarm::stop(){
+  wakeStatus = false;
+  state = false;
+}
+
+bool alarm::isRunning(){
+  return state;
+}
+
+void drawAlarmClock(byte hours, byte minutes, byte x, byte y, bool draw) {
+  lcd.setCursor(x, y);
+  lcd.print("               ");
+  lcd.setCursor(x, y + 1);
+  lcd.print("               ");
+
+  //if (hours > 23 || minutes > 59) return;
+  if(set_param == 1 && draw){
+    if (hours / 10 == 0) drawDig(10, x, y);
+    else drawDig(hours / 10, x, y);
+    drawDig(hours % 10, x + 4, y);
+  }
+
+  drawdots(7, 0, true);
   
+  if(set_param == 2 && draw){
+    drawDig(minutes / 10, x + 8, y);
+    drawDig(minutes % 10, x + 12, y);
+  }
+}
+
+void alarmTuning(){
+  
+  if (!firstStartFlag){
+    alarmTune.hour = hrs;
+    alarmTune.minute = mins;
+    alarmTune.sound = 1;
+    alarmTune.status = false;
+    firstStartFlag = true;
+    set_alarm = 1;
+    set_param = 1;
+  }
+
+  if (enc.isDouble()){
+    switch (set_alarm){
+      case 1:
+        alarm1.set(alarmTune.hour, alarmTune.minute, alarmTune.sound, alarmTune.status);
+        break;
+      case 2:
+        alarm2.set(alarmTune.hour, alarmTune.minute, alarmTune.sound, alarmTune.status);
+        break;
+      case 3:
+        alarm3.set(alarmTune.hour, alarmTune.minute, alarmTune.sound, alarmTune.status);
+        break;
+      default:
+        break;
+    }
+    set_alarm++;
+    if (set_alarm > 3){ set_alarm = 1;}
+  }
+  
+  if(enc.isSingle()){
+    set_param++;
+    if(set_param > 4){set_param = 1;}
+  }
+
+  if(enc.isRightH()){
+    set_alarm++;
+    if (set_alarm > 3){ set_alarm = 1;}
+  }
+  
+  if (enc.isLeftH()){
+    set_alarm--;
+    if (set_alarm < 1){ set_alarm = 3;}
+  }
+
+  if(enc.isRight()){
+    switch (set_param){
+      case 1:
+        alarmTune.hour++;
+        if (alarmTune.hour > 23){alarmTune.hour = 0;}
+        break;
+      case 2:
+        alarmTune.minute++;
+        if(alarmTune.minute > 59){alarmTune.minute = 0;};
+        break;
+      case 3:
+        alarmTune.sound++;
+        if(alarmTune.sound > 3){alarmTune.sound = 1;}
+        break;
+      case 4:
+        if(alarmTune.status){alarmTune.status = false;}
+          else{alarmTune.status = true;}          
+        break;
+      default:
+        break;
+    }
+  }
+
+  if(enc.isLeft()){
+    switch (set_param){
+      case 1:
+        alarmTune.hour--;
+        if (alarmTune.hour < 0){alarmTune.hour = 23;}
+        break;
+      case 2:
+        alarmTune.minute--;
+        if(alarmTune.minute < 0){alarmTune.minute = 59;};
+        break;
+      case 3:
+        alarmTune.sound--;
+        if(alarmTune.sound < 1){alarmTune.sound = 3;}
+        break;
+      case 4:
+        if(alarmTune.status){alarmTune.status = false;}
+          else{alarmTune.status = true;} 
+        break;
+      default:
+        break;
+    }
+  }
+
+  //--------------------------- print alarmTune -------------------------------------------  
   loadClock();
   lcd.clear();
   
+  if(drawDown_param.isReady()) {
+    drawDown_param.stop();
+    draw_param = false;
+    drawUp_param.start();
+  }
+
+  if(drawUp_param.isReady()) {
+    drawUp_param.stop();
+    draw_param = true;
+    drawDown_param.start();
+  }
+  
+  drawAlarmClock(alarmTune.hour, alarmTune.minute, 0, 0, draw_param);
+
+  if(set_param == 3 && draw_param){
+    lcd.setCursor(15,0); lcd.print("s-" + String(alarmTune.sound));
+  }
+
+  if(set_param == 4 && draw_param){
+    lcd.setCursor(15,1); alarmTune.status ? lcd.print("ON") : lcd.print("OFF");
+  }
+
+  //--------------------------- print alarm1 -----------------------------------------------
+  lcd.setCursor(0,2);
+  if (alarm1.get_wakeHour() >= 10){ lcd.print(String(alarm1.get_wakeHour())+":"); }
+    else { lcd.print("0" + String(alarm1.get_wakeHour()) + ":"); }
+  
+  lcd.setCursor(3,2);
+  if (alarm1.get_wakeMinute() >= 10){ lcd.print(String(alarm1.get_wakeMinute()));}
+    else {lcd.print("0" + String(alarm1.get_wakeMinute()));}
+
+  lcd.setCursor(0,3);
+  lcd.print("s" + String(alarm1.get_wakeSound())); 
+
+  lcd.setCursor(3,3);
+  alarm1.get_wakeStatus() ? lcd.print("ON") : lcd.print ("OFF");
+  
+  //--------------------------- print alarm2 -----------------------------------------------
+  lcd.setCursor(7,2);
+  if (alarm2.get_wakeHour() >= 10){ lcd.print(String(alarm2.get_wakeHour())+":"); }
+    else { lcd.print("0" + String(alarm2.get_wakeHour()) + ":"); }
+
+  lcd.setCursor(10,2);
+  if (alarm2.get_wakeMinute() >= 10){ lcd.print(String(alarm2.get_wakeMinute()));}
+    else {lcd.print("0" + String(alarm2.get_wakeMinute()));}
+
+  lcd.setCursor(7,3);
+  lcd.print("s" + String(alarm2.get_wakeSound()));
+
+  lcd.setCursor(10,3);
+  alarm2.get_wakeStatus() ? lcd.print("ON") : lcd.print ("OFF");
+
+  //--------------------------- print alarm3 -----------------------------------------------
+  lcd.setCursor(14,2);
+  if (alarm3.get_wakeHour() >= 10){ lcd.print(String(alarm3.get_wakeHour())+":"); }
+    else { lcd.print("0" + String(alarm3.get_wakeHour()) + ":"); }
+  
+  lcd.setCursor(17,2);
+  if (alarm3.get_wakeMinute() >= 10){ lcd.print(String(alarm3.get_wakeMinute()));}
+    else {lcd.print("0" + String(alarm3.get_wakeMinute()));}
+
+  lcd.setCursor(14,3);
+  lcd.print("s" + String(alarm3.get_wakeSound()));
+
+  lcd.setCursor(17,3);
+  alarm3.get_wakeStatus() ? lcd.print("ON") : lcd.print ("OFF");
+  //--------------------------------------------------------------------------------------
+
+  switch (set_alarm){
+    case 1:
+      lcd.setCursor(5,2); lcd.print(60);
+      break;
+    case 2:
+      lcd.setCursor(12,2); lcd.print(60);
+      break;
+    case 3:
+      lcd.setCursor(19,2); lcd.print(60);
+      break;
+    default:
+      break;
+  }
+
   if(backToMain.isReady() || enc.isHolded()){
+    firstStartFlag = false;
     mode = 0;
   }
 }
 
-void alarmControl(){
+bool alarmControl(){
+  if(alarm1.checkAlarm(hrs, mins)) { 
+    alarm1.wakeUP();
+    return true;
+  }
+  if(alarm2.checkAlarm(hrs, mins)) { 
+    alarm2.wakeUP();
+    return true;
+  }
+  if(alarm3.checkAlarm(hrs, mins)) {
+    alarm3.wakeUP();
+    return true;
+  }
+  else {
+    return false;
+  }
+  
+}
 
+void alarmStop(){
+    if (alarm1.isRunning()){ alarm1.stop(); }
+    if (alarm2.isRunning()){ alarm2.stop(); }
+    if (alarm3.isRunning()){ alarm3.stop(); }
 }

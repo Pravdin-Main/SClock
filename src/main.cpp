@@ -37,6 +37,8 @@
 #include "main.h"
 #include "functions.h"
 
+bool alarmIs_ON = false;
+
 //------------------------SETUP-----------------------
 
 void setup() {
@@ -159,10 +161,18 @@ void loop() {
   if (brightTimer.isReady() ) checkBrightness();          // яркость
   if (sensorsTimer.isReady() ) readSensors();             // читаем показания датчиков с периодом SENS_TIME
   if (checkAlarm.isReady() ) {                            // проверить соответствие времени будильника текущему  
+    if(alarmControl()){
+      alarmIs_ON = true;
+    }
+  }
 
+  if (alarmIs_ON){ 
+    if (button.isDouble()){
+      alarmStop();
+      alarmIs_ON = false;
+    }
   }           
-  if (enc.isHolded()) alarmTuning();                      // усли нажата кнопка энкодера, войти в режим установки будильника
-
+ 
 #if (DISPLAY_TYPE == 1)
   if (clockTimer.isReady()) clockTick();        // два раза в секунду пересчитываем время и мигаем точками
   plotSensorsTick();                            // тут внутри несколько таймеров для пересчёта графиков (за час, за день и прогноз)
@@ -172,10 +182,10 @@ void loop() {
     if (enc.isHolded()) mode = 9;
     if (enc.isHolded() && button.isHold()) mode = 10;
   } 
-  else if(mode == 9){
+  if(mode == 9){
     alarmTuning();
   }
-  else if(mode == 10){
+  if(mode == 10){
 
   }
   else {                                          // в любом из графиков

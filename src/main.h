@@ -148,6 +148,8 @@ GTimer_ms predictTimer((long)10 * 60 * 1000);         // 10 минут
 GTimer_ms brightTimer(2000);
 GTimer_ms checkAlarm(ALARMCHECK);
 GTimer_ms backToMain(10000);
+GTimer_ms drawUp_param(200);
+GTimer_ms drawDown_param(1000);
 
 #include <LiquidCrystal_I2C.h>
 #if (DISPLAY_TYPE == 1)
