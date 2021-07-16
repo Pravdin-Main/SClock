@@ -28,7 +28,7 @@ QBPlay::QBPlay(const byte speaker_pin){
     pinMode(pin, OUTPUT);
 }
 
-void QBPlay::start(const __FlashStringHelper* melodie_str, boolean melodie_repeat = false){
+void QBPlay::start(const __FlashStringHelper* melodie_str, boolean melodie_repeat){
     play = true;
     repeat = melodie_repeat;
     melodie = melodie_str;

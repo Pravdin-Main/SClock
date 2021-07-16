@@ -26,18 +26,7 @@
   с фоторезистора.
 */
 
-// библиотеки
-#include <Arduino.h>
-#include <Wire.h>
-#include <LiquidCrystal_I2C.h>
-#include <Adafruit_Sensor.h>
-#include <GyverTimer.h>
-#include <GyverButton.h>
-#include <GyverEncoder.h>
 #include "main.h"
-#include "functions.h"
-
-bool alarmIs_ON = false;
 
 //------------------------SETUP-----------------------
 
@@ -51,107 +40,22 @@ void setup() {
   pinMode(LED_B, OUTPUT);
   setLED(0);
 
-  digitalWrite(LED_COM, LED_MODE);
+  // digitalWrite(LED_COM, LED_MODE);
   analogWrite(BACKLIGHT, LCD_BRIGHT_MAX);
-
-  lcd.init();
-  lcd.backlight();
-  lcd.clear();
 
 //---------------------DEBUG--------------------------------
 
-#if (DEBUG == 1 && DISPLAY_TYPE == 1)
-  boolean status = true;
+  // #if (DEBUG == 1)
+  //   debug_start();
+  // #endif
 
-  setLED(1);
+//---------------------DEBUG END----------------------------
 
-#if (CO2_SENSOR == 1)
-  lcd.setCursor(0, 0);
-  lcd.print(F("MHZ-19... "));
-  Serial.print(F("MHZ-19... "));
-  mhz19.begin(MHZ_TX, MHZ_RX);
-  mhz19.setAutoCalibration(false);
-  mhz19.getStatus();    // первый запрос, в любом случае возвращает -1
-  delay(500);
-  if (mhz19.getStatus() == 0) {
-    lcd.print(F("OK"));
-    Serial.println(F("OK"));
-  } else {
-    lcd.print(F("ERROR"));
-    Serial.println(F("ERROR"));
-    status = false;
-  }
-#endif
+  // if (RESET_CLOCK || rtc.lostPower()) rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
 
-  setLED(2);
-  lcd.setCursor(0, 1);
-  lcd.print(F("RTC... "));
-  Serial.print(F("RTC... "));
-  delay(50);
-  if (rtc.begin()) {
-    lcd.print(F("OK"));
-    Serial.println(F("OK"));
-  } else {
-    lcd.print(F("ERROR"));
-    Serial.println(F("ERROR"));
-    status = false;
-  }
+  display_init();
 
-  setLED(3);
-  lcd.setCursor(0, 2);
-  lcd.print(F("BME280... "));
-  Serial.print(F("BME280... "));
-  delay(50);
-  if (bme.begin()) {
-    lcd.print(F("OK"));
-    Serial.println(F("OK"));
-  } else {
-    lcd.print(F("ERROR"));
-    Serial.println(F("ERROR"));
-    status = false;
-  }
-
-  setLED(0);
-  lcd.setCursor(0, 3);
-  if (status) {
-    lcd.print(F("All good"));
-    Serial.println(F("All good"));
-  } else {
-    lcd.print(F("Check wires!"));
-    Serial.println(F("Check wires!"));
-  }
-  while (1) {
-    lcd.setCursor(14, 1);
-    lcd.print("P:    ");
-    lcd.setCursor(16, 1);
-    lcd.print(analogRead(PHOTO), 1);
-    Serial.println(analogRead(PHOTO));
-    delay(300);
-  }
-#else
-
-//--------------------------DEBUG END----------------------------
-
-#if (CO2_SENSOR == 1)
-  mhz19.begin(MHZ_TX, MHZ_RX);
-  mhz19.setAutoCalibration(false);
-#endif
-  rtc.begin();
-  bme.begin();
-  bme.setTempCal(-1);
-#endif
-
-  /*bme.setSampling(Adafruit_BME280::MODE_FORCED,
-                  Adafruit_BME280::SAMPLING_X1, // temperature
-                  Adafruit_BME280::SAMPLING_X1, // pressure
-                  Adafruit_BME280::SAMPLING_X1, // humidity
-                  Adafruit_BME280::FILTER_OFF   );*/
-
-  if (RESET_CLOCK || rtc.lostPower())
-    rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
-
-play = new QBPlay(buzzer);
-void inition (); // Взять текущее время и показания с датчиков и вывести на экран
+  inition (); // Взять текущее время и показания с датчиков и вывести на экран
 
 }
 
@@ -160,38 +64,40 @@ void inition (); // Взять текущее время и показания �
 void loop() {
   if (brightTimer.isReady() ) checkBrightness();          // яркость
   if (sensorsTimer.isReady() ) readSensors();             // читаем показания датчиков с периодом SENS_TIME
+
+  uint8_t alarm_s;
   if (checkAlarm.isReady() ) {                            // проверить соответствие времени будильника текущему  
-    if(alarmControl()){
-      alarmIs_ON = true;
-    }
+    alarm_s = alarmControl();
+    if(alarm_s != 0) alarmIs_ON = true;
   }
 
   if (alarmIs_ON){ 
-    if (button.isDouble()){
+    alarmStart(alarm_s);
+    if (Button_IsDouble()){
       alarmStop();
       alarmIs_ON = false;
     }
   }           
  
-#if (DISPLAY_TYPE == 1)
-  if (clockTimer.isReady()) clockTick();        // два раза в секунду пересчитываем время и мигаем точками
-  plotSensorsTick();                            // тут внутри несколько таймеров для пересчёта графиков (за час, за день и прогноз)
-  modesTick();                                  // тут ловим нажатия на кнопку и переключаем режимы
-  if (mode == 0) {                                  // в режиме "главного экрана"
-    if (drawSensorsTimer.isReady()) drawSensors();  // обновляем показания датчиков на дисплее с периодом SENS_TIME
-    if (enc.isHolded()) mode = 9;
-    if (enc.isHolded() && button.isHold()) mode = 10;
-  } 
-  if(mode == 9){
-    alarmTuning();
-  }
-  if(mode == 10){
+  #if (DISPLAY_TYPE == 1)
+    if (clockTimer.isReady()) clockTick();        // два раза в секунду пересчитываем время и мигаем точками
+    plotSensorsTick();                            // тут внутри несколько таймеров для пересчёта графиков (за час, за день и прогноз)
+    modesTick();                                  // тут ловим нажатия на кнопку и переключаем режимы
+    if (Mode(0) == 0) {                                  // в режиме "главного экрана"
+      if (drawSensorsTimer.isReady()) drawSensors();  // обновляем показания датчиков на дисплее с периодом SENS_TIME
+      if (Enc_IsHolded()) Mode(9);
+      // if (enc.isHolded() && button.isHold()) mode = 10;
+    } 
+    if(Mode(0) == 9){
+      alarmTuning();
+    }
+    // if(mode == 10){
 
-  }
-  else {                                          // в любом из графиков
-    if (plotTimer.isReady()) redrawPlot();          // перерисовываем график
-  }
-#else
-  if (drawSensorsTimer.isReady()) drawSensors();
-#endif
+    // }
+    else {                                          // в любом из графиков
+      if (plotTimer.isReady()) redrawPlot();          // перерисовываем график
+    }
+  #else
+    if (drawSensorsTimer.isReady()) drawSensors();
+  #endif
 }
