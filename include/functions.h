@@ -2,6 +2,11 @@
 #define functions_h
 
 #include <Arduino.h>
+#include "sound.h"
+
+#define DEBUG 0             // вывод на дисплей лог инициализации датчиков при запуске. Для дисплея 1602 не работает! Но дублируется через порт!
+void debug_start();
+#define RESET_CLOCK 0       // сброс часов на время загрузки прошивки (для модуля с несъёмной батарейкой). Не забудь поставить 0 и прошить ещё раз!
 
 // Общие настройки
 #define DISP_MODE 1         // в правом верхнем углу отображать: 0 - год, 1 - день недели, 2 - секунды
@@ -135,7 +140,7 @@ void drawDig(uint8_t dig, uint8_t x, uint8_t y);
 void drawdots(uint8_t x, uint8_t y, bool state);
 void drawClock(uint8_t hours, uint8_t minutes, uint8_t x, uint8_t y, bool dotState);
 void drawData();
-void drawPlot(uint8_t pos, uint8_t row, uint8_t width, uint8_t height, int min_val, int max_val, int *plot_array, String label);
+void drawPlot(uint8_t pos, uint8_t row, uint8_t width, uint8_t height, int min_val, int max_val, int *plot_array, uint8_t label);
 void loadClock();
 void loadPlot();
 void setLED(uint8_t color);
@@ -215,8 +220,13 @@ struct alarmTuner {
 // };
 // #endif
 
-bool Button_IsDouble();
+bool Enc_IsClick();
+bool Enc_IsDouble();
 bool Enc_IsHolded();
+void Enc_Tick();
+void Enc_Reset();
 uint8_t Mode(uint8_t x);
+
+void drawAlarmFlag();
 
 #endif

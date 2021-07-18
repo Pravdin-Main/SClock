@@ -1,0 +1,6 @@
+{
+    "port": "/dev/tty.usbserial-1410",
+    "configuration": "cpu=atmega328old",
+    "board": "arduino:avr:nano",
+    "programmer": "arduino:avrispmkii"
+}

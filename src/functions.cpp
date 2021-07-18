@@ -4,10 +4,21 @@ static int8_t hrs;
 static int8_t mins;
 static int8_t secs;
 static uint8_t set_param;
+static uint8_t mode = 0;
+static bool change_flag;
+static const char *labels[]  = {
+  "t hr",
+  "t day",
+  "h hr",
+  "h day",
+  "p hr",
+  "p day",
+  "c hr",
+  "c day"
+};
 
 alarmTuner alarmTune;
 
-uint8_t mode = 0;
 bool dotFlag;
 bool firstStartFlag = false;
 uint8_t set_alarm;
@@ -81,9 +92,9 @@ GButton button(BTN_PIN, LOW_PULL, NORM_OPEN);
 GTimer_ms hourPlotTimer((long)4 * 60 * 1000);         // 4 минуты
 GTimer_ms dayPlotTimer((long)1.6 * 60 * 60 * 1000);   // 1.6 часа
 GTimer_ms predictTimer((long)10 * 60 * 1000);         // 10 минут
-GTimer_ms drawDown_param(1000);
-GTimer_ms drawUp_param(200);
-GTimer_ms backToMain(10000);
+GTimer_ms drawDown_param(2000);
+GTimer_ms drawUp_param(400);
+GTimer_ms backToMain(20000);
 
 // символы
 // график
@@ -121,6 +132,15 @@ void display_init(){
   lcd.init();
   lcd.backlight();
   lcd.clear();
+
+  #if (CO2_SENSOR == 1)
+    mhz19.begin(MHZ_TX, MHZ_RX);
+    mhz19.setAutoCalibration(false);
+  #endif
+  rtc.begin();
+  bme.begin();
+  bme.setTempCal(-1);
+  if (RESET_CLOCK || rtc.lostPower()) rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
 }
 
 void inition () {
@@ -145,12 +165,24 @@ void inition () {
    drawSensors();
 }
 
-bool Button_IsDouble(){
-  return button.isDouble();
+void Enc_Tick(){
+  enc.tick();
+}
+
+bool Enc_IsClick(){
+  return enc.isSingle();
+}
+
+bool Enc_IsDouble(){
+  return enc.isDouble();
 }
 
 bool Enc_IsHolded(){
   return enc.isHolded();
+}
+
+void Enc_Reset(){
+  enc.resetStates();
 }
 
 uint8_t Mode(uint8_t x){
@@ -315,7 +347,7 @@ void drawData() {
   }
 }
 
-void drawPlot(uint8_t pos, uint8_t row, uint8_t width, uint8_t height, int min_val, int max_val, int *plot_array, String label) {
+void drawPlot(uint8_t pos, uint8_t row, uint8_t width, uint8_t height, int min_val, int max_val, int *plot_array, uint8_t label) {
   int max_value = -32000;
   int min_value = 32000;
 
@@ -324,7 +356,7 @@ void drawPlot(uint8_t pos, uint8_t row, uint8_t width, uint8_t height, int min_v
     if (plot_array[i] < min_value) min_value = plot_array[i];
   }
   lcd.setCursor(16, 0); lcd.print(max_value);
-  lcd.setCursor(16, 1); lcd.print(label);
+  lcd.setCursor(16, 1); lcd.print(labels[label]);
   lcd.setCursor(16, 2); lcd.print(plot_array[14]);
   lcd.setCursor(16, 3); lcd.print(min_value);
 
@@ -432,17 +464,24 @@ void checkBrightness() {
 void modesTick() {
   button.tick();
   bool changeFlag = false;
-  if (button.isClick()) {
+  if (button.isClick() || enc.isRight()) {
     mode++;
 
 #if (CO2_SENSOR == 1)
-    if (mode > 9) mode = 0;
+    if (mode > 8) mode = 0;
 #else
     if (mode > 6) mode = 0;
 #endif
     changeFlag = true;
   }
-  if (button.isHolded()) {
+
+  if(enc.isLeft()){
+    if(mode != 0) mode--;
+      else { mode = 8; }
+    changeFlag = true;
+  }
+
+  if (button.isHolded() || enc.isHolded()) {
     mode = 0;
     changeFlag = true;
   }
@@ -466,21 +505,21 @@ void modesTick() {
 void redrawPlot() {
   lcd.clear();
   switch (mode) {
-    case 1: drawPlot(0, 3, 15, 4, TEMP_MIN, TEMP_MAX, (int*)tempHour, "t hr");
+    case 1: drawPlot(0, 3, 15, 4, TEMP_MIN, TEMP_MAX, (int*)tempHour, 0);
       break;
-    case 2: drawPlot(0, 3, 15, 4, TEMP_MIN, TEMP_MAX, (int*)tempDay, "t day");
+    case 2: drawPlot(0, 3, 15, 4, TEMP_MIN, TEMP_MAX, (int*)tempDay, 1);
       break;
-    case 3: drawPlot(0, 3, 15, 4, HUM_MIN, HUM_MAX, (int*)humHour, "h hr");
+    case 3: drawPlot(0, 3, 15, 4, HUM_MIN, HUM_MAX, (int*)humHour, 2);
       break;
-    case 4: drawPlot(0, 3, 15, 4, HUM_MIN, HUM_MAX, (int*)humDay, "h day");
+    case 4: drawPlot(0, 3, 15, 4, HUM_MIN, HUM_MAX, (int*)humDay, 3);
       break;
-    case 5: drawPlot(0, 3, 15, 4, PRESS_MIN, PRESS_MAX, (int*)pressHour, "p hr");
+    case 5: drawPlot(0, 3, 15, 4, PRESS_MIN, PRESS_MAX, (int*)pressHour, 4);
       break;
-    case 6: drawPlot(0, 3, 15, 4, PRESS_MIN, PRESS_MAX, (int*)pressDay, "p day");
+    case 6: drawPlot(0, 3, 15, 4, PRESS_MIN, PRESS_MAX, (int*)pressDay, 5);
       break;
-    case 7: drawPlot(0, 3, 15, 4, CO2_MIN, CO2_MAX, (int*)co2Hour, "c hr");
+    case 7: drawPlot(0, 3, 15, 4, CO2_MIN, CO2_MAX, (int*)co2Hour, 6);
       break;
-    case 8: drawPlot(0, 3, 15, 4, CO2_MIN, CO2_MAX, (int*)co2Day, "c day");
+    case 8: drawPlot(0, 3, 15, 4, CO2_MIN, CO2_MAX, (int*)co2Day, 7);
       break;
   }
 }
@@ -503,21 +542,21 @@ void drawSensors() {
 #if (DISPLAY_TYPE == 1)
   // дисплей 2004
   lcd.setCursor(0, 2);
-  lcd.print(String(dispTemp, 1));
+  lcd.print(dispTemp, 1);
   lcd.write(223);
   lcd.setCursor(6, 2);
-  lcd.print(" " + String(dispHum) + "%  ");
+  lcd.print(" "); lcd.print(dispHum); lcd.print("%  ");
 
 #if (CO2_SENSOR == 1)
-  lcd.print(String(dispCO2) + " ppm");
+  lcd.print(dispCO2); lcd.print(" ppm");
   if (dispCO2 < 1000) lcd.print(" ");
 #endif
 
   lcd.setCursor(0, 3);
-  lcd.print(String(dispPres) + " mm  rain ");
+  lcd.print(dispPres); lcd.print(" mm  rain ");
   lcd.print(F("       "));
   lcd.setCursor(13, 3);
-  lcd.print(String(dispRain) + "%");
+  lcd.print(dispRain); lcd.print("%");
 
 #else
   // дисплей 1602
@@ -653,10 +692,31 @@ void clockTick() {
 //---------------------ALARM--------------------------------------------------
 
 void drawAlarmClock(uint8_t hours, uint8_t minutes, uint8_t x, uint8_t y, bool draw) {
-  lcd.setCursor(x, y);
-  lcd.print("               ");
-  lcd.setCursor(x, y + 1);
-  lcd.print("               ");
+
+  if(change_flag){
+    switch(set_param) {
+      case 1:
+        lcd.setCursor(x, y);
+        lcd.print("       ");
+        lcd.setCursor(x, y + 1);
+        lcd.print("       ");
+        break;
+      case 2:
+        lcd.setCursor(x + 8, y);
+        lcd.print("       ");
+        lcd.setCursor(x + 8, y + 1);
+        lcd.print("       ");
+        break;
+      case 3:
+        lcd.setCursor(15, 0); lcd.print("     ");
+        break;
+      case 4:
+        lcd.setCursor(15, 1); lcd.print("     ");
+        break;
+      default:
+        break;
+    }
+  }
 
   //if (hours > 23 || minutes > 59) return;
   if(set_param == 1 && draw){
@@ -664,17 +724,141 @@ void drawAlarmClock(uint8_t hours, uint8_t minutes, uint8_t x, uint8_t y, bool d
     else drawDig(hours / 10, x, y);
     drawDig(hours % 10, x + 4, y);
   }
+  else if(set_param == 1 && !draw){
+    lcd.setCursor(x, y);
+    lcd.print("       ");
+    lcd.setCursor(x, y + 1);
+    lcd.print("       ");
+  }
 
   drawdots(7, 0, true);
   
   if(set_param == 2 && draw){
-    drawDig(minutes / 10, x + 8, y);
-    drawDig(minutes % 10, x + 12, y);
+    drawDig(minutes / 10, 8, y);
+    drawDig(minutes % 10, 12, y);
+  }
+  else if(set_param == 2 && !draw){
+    lcd.setCursor(x + 8, y);
+    lcd.print("       ");
+    lcd.setCursor(x + 8, y + 1);
+    lcd.print("       ");
+  }
+
+  if(set_param == 3 && draw){
+    lcd.setCursor(15, 0); lcd.print("s-"); lcd.print(alarmTune.sound);
+  }
+  else if (set_param == 3 && !draw){
+    lcd.setCursor(15, 0); lcd.print("     ");
+  }
+
+  if(set_param == 4 && draw){
+    lcd.setCursor(15, 1); alarmTune.status ? lcd.print("ON") : lcd.print("OFF");
+  }
+  else if(set_param == 4 && !draw){
+    lcd.setCursor(15, 1); lcd.print("     ");
+  }
+
+  switch(set_param){
+    case 1:
+      drawDig(alarmTune.minute / 10, 8, 0);
+      drawDig(alarmTune.minute % 10, 12, 0);
+      lcd.setCursor(15,0); lcd.print("s-"); lcd.print(alarmTune.sound);
+      lcd.setCursor(15,1); alarmTune.status ? lcd.print("ON") : lcd.print("OFF");
+      break;
+    case 2:
+      drawDig(alarmTune.hour / 10, 0, 0);
+      drawDig(alarmTune.hour % 10, 4, 0);
+      lcd.setCursor(15,0); lcd.print("s-"); lcd.print(alarmTune.sound);
+      lcd.setCursor(15,1); alarmTune.status ? lcd.print("ON") : lcd.print("OFF");
+      break;
+    case 3:
+      drawDig(alarmTune.hour / 10, 0, 0);
+      drawDig(alarmTune.hour % 10, 4, 0);
+      drawDig(alarmTune.minute / 10, 8, 0);
+      drawDig(alarmTune.minute % 10, 12, 0);
+      lcd.setCursor(15,1); alarmTune.status ? lcd.print("ON") : lcd.print("OFF");
+      break;
+    case 4:
+      drawDig(alarmTune.hour / 10, 0, 0);
+      drawDig(alarmTune.hour % 10, 4, 0);
+      drawDig(alarmTune.minute / 10, 8, 0);
+      drawDig(alarmTune.minute % 10, 12, 0);
+      lcd.setCursor(15,0); lcd.print("s-"); lcd.print(alarmTune.sound);
+      break;
+    default:
+      break;
+  }
+
+  //--------------------------- print alarm1 -----------------------------------------------
+  lcd.setCursor(0,2);
+  int8_t hour = alarm1.get_wakeHour();
+  if (hour >= 10) { lcd.print(hour); lcd.print(":"); }
+    else { lcd.print("0"); lcd.print(alarm1.get_wakeHour()); lcd.print(":"); }
+  
+  lcd.setCursor(3,2);
+  if (alarm1.get_wakeMinute() >= 10) lcd.print(alarm1.get_wakeMinute());
+    else {  lcd.print("0"); lcd.print(alarm1.get_wakeMinute()); }
+
+  lcd.setCursor(0,3);
+  lcd.print("s"); lcd.print(alarm1.get_wakeSound()); 
+
+  lcd.setCursor(3,3);
+  alarm1.get_wakeStatus() ? lcd.print("ON") : lcd.print ("OFF");
+  
+  //--------------------------- print alarm2 -----------------------------------------------
+  lcd.setCursor(7,2);
+  if (alarm2.get_wakeHour() >= 10){ lcd.print(alarm2.get_wakeHour()); lcd.print(":"); }
+    else { lcd.print("0"); lcd.print(alarm2.get_wakeHour()); lcd.print(":"); }
+
+  lcd.setCursor(10,2);
+  if (alarm2.get_wakeMinute() >= 10) lcd.print(alarm2.get_wakeMinute());
+    else { lcd.print("0"); lcd.print(alarm2.get_wakeMinute()); }
+
+  lcd.setCursor(7,3);
+  lcd.print("s"); lcd.print(alarm2.get_wakeSound());
+
+  lcd.setCursor(10,3);
+  alarm2.get_wakeStatus() ? lcd.print("ON") : lcd.print ("OFF");
+
+  //--------------------------- print alarm3 -----------------------------------------------
+  lcd.setCursor(14,2);
+  if (alarm3.get_wakeHour() >= 10) { lcd.print(alarm3.get_wakeHour()); lcd.print(":"); }
+    else { lcd.print("0"); lcd.print(alarm3.get_wakeHour()); lcd.print(":"); }
+  
+  lcd.setCursor(17,2);
+  if (alarm3.get_wakeMinute() >= 10) lcd.print(alarm3.get_wakeMinute());
+    else { lcd.print("0"); lcd.print(alarm3.get_wakeMinute()); }
+
+  lcd.setCursor(14,3);
+  lcd.print("s"); lcd.print(alarm3.get_wakeSound());
+
+  lcd.setCursor(17,3);
+  alarm3.get_wakeStatus() ? lcd.print("ON") : lcd.print ("OFF");
+  //--------------------------------------------------------------------------------------
+
+  switch (set_alarm){
+    case 1:
+      lcd.setCursor(5, 2); lcd.print("<");
+      lcd.setCursor(12, 2); lcd.print(" ");
+      lcd.setCursor(19, 2); lcd.print(" ");
+      break;
+    case 2:
+      lcd.setCursor(5, 2); lcd.print(" ");
+      lcd.setCursor(12, 2); lcd.print("<");
+      lcd.setCursor(19, 2); lcd.print(" ");
+      break;
+    case 3:
+      lcd.setCursor(5, 2); lcd.print(" ");
+      lcd.setCursor(12, 2); lcd.print(" ");
+      lcd.setCursor(19, 2); lcd.print("<");
+      break;
+    default:
+      break;
   }
 }
 
 void alarmTuning(){
-  
+  button.tick();
   if (!firstStartFlag){
     alarmTune.hour = hrs;
     alarmTune.minute = mins;
@@ -683,8 +867,17 @@ void alarmTuning(){
     firstStartFlag = true;
     set_alarm = 1;
     set_param = 1;
+
     loadClock();
+    lcd.clear();
+    enc.resetStates();
+
+    backToMain.start();
+    backToMain.reset();
+    
+    drawAlarmClock(alarmTune.hour, alarmTune.minute, 0, 0, true);
   }
+  change_flag = false;
 
   if (enc.isDouble()){
     switch (set_alarm){
@@ -702,24 +895,29 @@ void alarmTuning(){
     }
     ++set_alarm;
     if (set_alarm > 3) set_alarm = 1;
+    lcd.clear();
+    change_flag = true;
   }
   
   if(enc.isSingle()){
     ++set_param;
     if(set_param > 4) set_param = 1;
     backToMain.reset();
+    change_flag = true;
   }
 
   if(enc.isRightH()){
     ++set_alarm;
     if (set_alarm > 3) set_alarm = 1;
     backToMain.reset();
+    change_flag = true;
   }
   
   if (enc.isLeftH()){
     --set_alarm;
     if (set_alarm < 1) set_alarm = 3;
     backToMain.reset();
+    change_flag = true;
   }
 
   if(enc.isRight()){
@@ -744,6 +942,7 @@ void alarmTuning(){
         break;
     }
     backToMain.reset();
+    change_flag = true;
   }
 
   if(enc.isLeft()){
@@ -768,140 +967,58 @@ void alarmTuning(){
         break;
     }
     backToMain.reset();
+    change_flag = true;
   }
 
   //--------------------------- print alarmTune -------------------------------------------  
-  lcd.clear();
+  
+  if(change_flag){
+    // lcd.clear();
+    drawDown_param.start();
+    drawDown_param.reset();
+    drawUp_param.stop();
+    drawAlarmClock(alarmTune.hour, alarmTune.minute, 0, 0, true);
+  }
+
   
   if(drawDown_param.isReady()) {
     drawDown_param.stop();
     draw_param = false;
     drawUp_param.start();
+    drawUp_param.reset();
+    drawAlarmClock(alarmTune.hour, alarmTune.minute, 0, 0, draw_param);
   }
 
   if(drawUp_param.isReady()) {
     drawUp_param.stop();
     draw_param = true;
     drawDown_param.start();
-  }
-  
-  drawAlarmClock(alarmTune.hour, alarmTune.minute, 0, 0, draw_param);
-
-  if(set_param == 3 && draw_param){
-    lcd.setCursor(15,0); lcd.print("s-" + String(alarmTune.sound));
+    drawDown_param.reset();
+    drawAlarmClock(alarmTune.hour, alarmTune.minute, 0, 0, draw_param);
   }
 
-  if(set_param == 4 && draw_param){
-    lcd.setCursor(15,1); alarmTune.status ? lcd.print("ON") : lcd.print("OFF");
-  }
-
-  switch(set_param){
-    case 1:
-      drawDig(alarmTune.minute / 10, 8, 0);
-      drawDig(alarmTune.minute % 10, 12, 0);
-      lcd.setCursor(15,0); lcd.print("s-" + String(alarmTune.sound));
-      lcd.setCursor(15,1); alarmTune.status ? lcd.print("ON") : lcd.print("OFF");
-      break;
-    case 2:
-      drawDig(alarmTune.hour / 10, 8, 0);
-      drawDig(alarmTune.hour % 10, 12, 0);
-      lcd.setCursor(15,0); lcd.print("s-" + String(alarmTune.sound));
-      lcd.setCursor(15,1); alarmTune.status ? lcd.print("ON") : lcd.print("OFF");
-      break;
-    case 3:
-      drawDig(alarmTune.hour / 10, 8, 0);
-      drawDig(alarmTune.hour % 10, 12, 0);
-      drawDig(alarmTune.minute / 10, 8, 0);
-      drawDig(alarmTune.minute % 10, 12, 0);
-      lcd.setCursor(15,1); alarmTune.status ? lcd.print("ON") : lcd.print("OFF");
-      break;
-    case 4:
-      drawDig(alarmTune.hour / 10, 8, 0);
-      drawDig(alarmTune.hour % 10, 12, 0);
-      drawDig(alarmTune.minute / 10, 8, 0);
-      drawDig(alarmTune.minute % 10, 12, 0);
-      lcd.setCursor(15,0); lcd.print("s-" + String(alarmTune.sound));
-      break;
-    default:
-      break;
-  }
-
-  //--------------------------- print alarm1 -----------------------------------------------
-  lcd.setCursor(0,2);
-  if (alarm1.get_wakeHour() >= 10) lcd.print(String(alarm1.get_wakeHour())+":");
-    else { lcd.print("0" + String(alarm1.get_wakeHour()) + ":"); }
-  
-  lcd.setCursor(3,2);
-  if (alarm1.get_wakeMinute() >= 10) lcd.print(String(alarm1.get_wakeMinute()));
-    else {lcd.print("0" + String(alarm1.get_wakeMinute()));}
-
-  lcd.setCursor(0,3);
-  lcd.print("s" + String(alarm1.get_wakeSound())); 
-
-  lcd.setCursor(3,3);
-  alarm1.get_wakeStatus() ? lcd.print("ON") : lcd.print ("OFF");
-  
-  //--------------------------- print alarm2 -----------------------------------------------
-  lcd.setCursor(7,2);
-  if (alarm2.get_wakeHour() >= 10) lcd.print(String(alarm2.get_wakeHour())+":");
-    else { lcd.print("0" + String(alarm2.get_wakeHour()) + ":"); }
-
-  lcd.setCursor(10,2);
-  if (alarm2.get_wakeMinute() >= 10) lcd.print(String(alarm2.get_wakeMinute()));
-    else {lcd.print("0" + String(alarm2.get_wakeMinute()));}
-
-  lcd.setCursor(7,3);
-  lcd.print("s" + String(alarm2.get_wakeSound()));
-
-  lcd.setCursor(10,3);
-  alarm2.get_wakeStatus() ? lcd.print("ON") : lcd.print ("OFF");
-
-  //--------------------------- print alarm3 -----------------------------------------------
-  lcd.setCursor(14,2);
-  if (alarm3.get_wakeHour() >= 10) lcd.print(String(alarm3.get_wakeHour())+":");
-    else { lcd.print("0" + String(alarm3.get_wakeHour()) + ":"); }
-  
-  lcd.setCursor(17,2);
-  if (alarm3.get_wakeMinute() >= 10) lcd.print(String(alarm3.get_wakeMinute()));
-    else {lcd.print("0" + String(alarm3.get_wakeMinute()));}
-
-  lcd.setCursor(14,3);
-  lcd.print("s" + String(alarm3.get_wakeSound()));
-
-  lcd.setCursor(17,3);
-  alarm3.get_wakeStatus() ? lcd.print("ON") : lcd.print ("OFF");
-  //--------------------------------------------------------------------------------------
-
-  switch (set_alarm){
-    case 1:
-      lcd.setCursor(5,2); lcd.print(60);
-      break;
-    case 2:
-      lcd.setCursor(12,2); lcd.print(60);
-      break;
-    case 3:
-      lcd.setCursor(19,2); lcd.print(60);
-      break;
-    default:
-      break;
-  }
-
-  if(backToMain.isReady() || enc.isHolded()){
+  if(backToMain.isReady() || button.isHolded() || enc.isHolded()){
     firstStartFlag = false;
+    lcd.clear();
+    loadClock();
+    drawClock(hrs, mins, 0, 0, 1);
+    drawData();
+    drawSensors();
     mode = 0;
+    backToMain.stop();
   }
 }
 
 void alarmStart(uint8_t set){
   switch(set) {
     case 1:
-      alarm1.wakeUP();
+      play_sound(alarm1.wakeUP_Sound());
       break;
     case 2:
-      alarm1.wakeUP();
+      play_sound(alarm2.wakeUP_Sound());
       break;
     case 3:
-      alarm1.wakeUP();
+      play_sound(alarm3.wakeUP_Sound());
       break;
     default:
      break;
@@ -919,7 +1036,114 @@ uint8_t alarmControl(){
 }
 
 void alarmStop(){
-    if (alarm1.isRunning()) alarm1.stop();
-    if (alarm2.isRunning()) alarm2.stop();
-    if (alarm3.isRunning()) alarm3.stop();
+    if (alarm1.isRunning()) {
+      alarm1.stop();
+      play_sound(0);
+    }
+    if (alarm2.isRunning()) {
+      alarm2.stop();
+      play_sound(0);
+    }
+    if (alarm3.isRunning()) {
+      alarm3.stop();
+      play_sound(0);
+    }
+}
+
+void drawAlarmFlag(){
+  if(alarm1.get_wakeStatus() || alarm2.get_wakeStatus() || alarm3.get_wakeStatus()){
+    lcd.setCursor(19, 3); lcd.print("!");
+  }
+    else { lcd.setCursor(19, 3); lcd.print(" "); }
+}
+
+void debug_start(){
+    #if (DEBUG == 1 && DISPLAY_TYPE == 1)
+        Serial.begin(9600);
+        boolean status = true;
+        lcd.clear();
+
+        setLED(1);
+
+    #if (CO2_SENSOR == 1)
+        lcd.setCursor(0, 0);
+        lcd.print(F("MHZ-19... "));
+        Serial.print(F("MHZ-19... "));
+        mhz19.begin(MHZ_TX, MHZ_RX);
+        mhz19.setAutoCalibration(false);
+        mhz19.getStatus();    // первый запрос, в любом случае возвращает -1
+        delay(500);
+        if (mhz19.getStatus() == 0) {
+            lcd.print(F("OK"));
+            Serial.println(F("OK"));
+        } else {
+            lcd.print(F("ERROR"));
+            Serial.println(F("ERROR"));
+            status = false;
+        }
+    #endif
+
+    setLED(2);
+    lcd.setCursor(0, 1);
+    lcd.print(F("RTC... "));
+    Serial.print(F("RTC... "));
+    delay(50);
+    if(rtc.begin()) {
+        lcd.print(F("OK"));
+        Serial.println(F("OK"));
+    } else {
+        lcd.print(F("ERROR"));
+        Serial.println(F("ERROR"));
+        status = false;
+    }
+
+    setLED(3);
+    lcd.setCursor(0, 2);
+    lcd.print(F("BME280... "));
+    Serial.print(F("BME280... "));
+    delay(50);
+    if(bme.begin()) {
+        lcd.print(F("OK"));
+        Serial.println(F("OK"));
+    } else {
+        lcd.print(F("ERROR"));
+        Serial.println(F("ERROR"));
+        status = false;
+    }
+
+    setLED(0);
+    lcd.setCursor(0, 3);
+    if(status) {
+        lcd.print(F("All good"));
+        Serial.println(F("All good"));
+    } else {
+        lcd.print(F("Check wires!"));
+        Serial.println(F("Check wires!"));
+    }
+    while(1) {
+        lcd.setCursor(14, 1);
+        lcd.print("P:    ");
+        lcd.setCursor(16, 1);
+        lcd.print(analogRead(PHOTO), 1);
+        Serial.println(analogRead(PHOTO));
+        delay(300);
+    }
+#else
+
+    // #if (CO2_SENSOR == 1)
+    //     mhz19.begin(MHZ_TX, MHZ_RX);
+    //     mhz19.setAutoCalibration(false);
+    // #endif
+
+    // rtc.begin();
+    // bme.begin();
+    // bme.setTempCal(-1);
+    /*bme.setSampling(Adafruit_BME280::MODE_FORCED,
+        Adafruit_BME280::SAMPLING_X1, // temperature
+        Adafruit_BME280::SAMPLING_X1, // pressure
+        Adafruit_BME280::SAMPLING_X1, // humidity
+        Adafruit_BME280::FILTER_OFF   );*/
+#endif
+// if (RESET_CLOCK || rtc.lostPower()) rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
+
 }

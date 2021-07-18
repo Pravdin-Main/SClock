@@ -38,65 +38,89 @@ void setup() {
   pinMode(LED_R, OUTPUT);
   pinMode(LED_G, OUTPUT);
   pinMode(LED_B, OUTPUT);
+
   setLED(0);
 
   // digitalWrite(LED_COM, LED_MODE);
   analogWrite(BACKLIGHT, LCD_BRIGHT_MAX);
 
+    display_init();
+  // Serial.println("Display inition is DONE");
+
+  
 //---------------------DEBUG--------------------------------
 
   // #if (DEBUG == 1)
-  //   debug_start();
+    debug_start();
   // #endif
 
 //---------------------DEBUG END----------------------------
 
+  inition (); // Взять текущее время и показания с датчиков и вывести на экран
+  // Serial.println("Sensors inition is DONE");
+
+
   // if (RESET_CLOCK || rtc.lostPower()) rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
 
-  display_init();
-
-  inition (); // Взять текущее время и показания с датчиков и вывести на экран
 
 }
 
 //----------------------LOOP--------------------------
 
 void loop() {
-  if (brightTimer.isReady() ) checkBrightness();          // яркость
-  if (sensorsTimer.isReady() ) readSensors();             // читаем показания датчиков с периодом SENS_TIME
+
+  Enc_Tick();
+
+  if (brightTimer.isReady() ) {
+    checkBrightness();          // яркость
+    // Serial.println("Check brightness is DONE");
+  }
+  if (sensorsTimer.isReady() ) {
+    readSensors();             // читаем показания датчиков с периодом SENS_TIME
+    // Serial.println("Check sensors is DONE");
+  }
 
   uint8_t alarm_s;
-  if (checkAlarm.isReady() ) {                            // проверить соответствие времени будильника текущему  
+  if (checkAlarm.isReady() && !alarmIs_ON) {                            // проверить соответствие времени будильника текущему  
     alarm_s = alarmControl();
+    // Serial.print("Alarm is ON ----  "); Serial.println(alarm_s);
     if(alarm_s != 0) alarmIs_ON = true;
+    // Serial.println("Alarm checked");
   }
 
   if (alarmIs_ON){ 
     alarmStart(alarm_s);
-    if (Button_IsDouble()){
+    Serial.print("Alarm --- "); Serial.println(alarm_s);
+    if (Enc_IsHolded()){
       alarmStop();
+      Serial.println("Alarm stopped");
       alarmIs_ON = false;
     }
   }           
  
   #if (DISPLAY_TYPE == 1)
     if (clockTimer.isReady()) clockTick();        // два раза в секунду пересчитываем время и мигаем точками
-    plotSensorsTick();                            // тут внутри несколько таймеров для пересчёта графиков (за час, за день и прогноз)
-    modesTick();                                  // тут ловим нажатия на кнопку и переключаем режимы
+    plotSensorsTick();   
+    if(Mode(0) != 9){                         // тут внутри несколько таймеров для пересчёта графиков (за час, за день и прогноз)
+      modesTick();
+      // Enc_Reset();                                  // тут ловим нажатия на кнопку и переключаем режимы
+    }
     if (Mode(0) == 0) {                                  // в режиме "главного экрана"
-      if (drawSensorsTimer.isReady()) drawSensors();  // обновляем показания датчиков на дисплее с периодом SENS_TIME
-      if (Enc_IsHolded()) Mode(9);
-      // if (enc.isHolded() && button.isHold()) mode = 10;
+      if (drawSensorsTimer.isReady()) {
+        drawSensors();  // обновляем показания датчиков на дисплее с периодом SENS_TIME
+        drawAlarmFlag();
+        // Serial.println("Sensors updated");
+      }
+      
+      if (Enc_IsDouble()) Mode(9);
     } 
-    if(Mode(0) == 9){
+    else if(Mode(0) == 9){
       alarmTuning();
+      // Enc_Reset();
     }
-    // if(mode == 10){
-
-    // }
-    else {                                          // в любом из графиков
-      if (plotTimer.isReady()) redrawPlot();          // перерисовываем график
-    }
+      else {                                          // в любом из графиков
+        if (plotTimer.isReady()) redrawPlot();          // перерисовываем график
+      }
   #else
     if (drawSensorsTimer.isReady()) drawSensors();
   #endif
