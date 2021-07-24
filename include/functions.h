@@ -14,7 +14,7 @@ void debug_start();
 #define DISPLAY_ADDR 0x27   // адрес платы дисплея: 0x27 или 0x3f. Если дисплей не работает - смени адрес! На самом дисплее адрес не указан
 
 #define WEEK_LANG 0         // язык дня недели: 0 - английский, 1 - русский (транслит)
-#define PRESSURE 1          // 0 - график давления, 1 - график прогноза дождя (вместо давления). Не забудь поправить пределы гроафика
+#define PRESSURE 0          // 0 - график давления, 1 - график прогноза дождя (вместо давления). Не забудь поправить пределы гроафика
 #define CO2_SENSOR 1        // включить или выключить поддержку/вывод с датчика СО2 (1 вкл, 0 выкл)
 #define LED_MODE 0          // тип RGB светодиода: 0 - главный катод, 1 - главный анод
 #define BLUE_YELLOW 0       // жёлтый цвет вместо синего (1 да, 0 нет) но из за особенностей подключения жёлтый не такой яркий
@@ -24,12 +24,12 @@ void debug_start();
 #define PHOTO A3            // Фоторезистор
 #define CLK 12              // пин CLK энкодера
 #define DT 11               // пин DT  энкодера
-#define SW 8                // пин SW энкодера
+#define SW 9                // пин SW энкодера
 #define MHZ_RX 2            // Датчик СО2 RX
 #define MHZ_TX 3            // Датчик СО2 TX
 #define BTN_PIN 4           // Сенсорная кнопка
 #define LED_COM 7           // Катод (анод) RGB светодиода
-#define LED_R 9             // Красноя нога светодиода
+#define LED_R 8             // Красноя нога светодиода
 #define LED_G 6             // Зеленая нога светодиода
 #define LED_B 5             // Синяя нога светодиода
 #define BACKLIGHT 10        // Подсветка дисплея
@@ -227,6 +227,28 @@ void Enc_Tick();
 void Enc_Reset();
 uint8_t Mode(uint8_t x);
 
-void drawAlarmFlag();
+void drawFlags();
+
+#define EEPROM_KEY_ADDR 0
+#define EEPROM_KEY 150
+
+#define ALARM1_HOUR_ADDR 1
+#define ALARM1_MIN_ADDR 2
+#define ALARM1_SOUND_ADDR 3
+#define ALARM1_STATUS_ADDR 4
+
+#define ALARM2_HOUR_ADDR 5
+#define ALARM2_MIN_ADDR 6
+#define ALARM2_SOUND_ADDR 7
+#define ALARM2_STATUS_ADDR 8
+
+#define ALARM3_HOUR_ADDR 9
+#define ALARM3_MIN_ADDR 10
+#define ALARM3_SOUND_ADDR 11
+#define ALARM3_STATUS_ADDR 12
+
+void EEPROM_init();
+// void EEPROM_put(uint8_t x);
+// void EEPROM_get(uint8_t x);
 
 #endif

@@ -18,6 +18,8 @@ class alarm {
     uint8_t wakeUP_Sound();
     void stop();
     bool isRunning();
+    void getEEPROM(uint8_t h_addr, uint8_t m_addr, uint8_t snd_addr, uint8_t st_addr);
+    void putEEPROM(uint8_t h_addr, uint8_t m_addr, uint8_t snd_addr, uint8_t st_addr);
 
   private:
     uint8_t wakeHour;
@@ -26,5 +28,7 @@ class alarm {
     bool wakeStatus = false;
     bool state = false;
 };
+
+#include <EEPROM.h>
 
 #endif

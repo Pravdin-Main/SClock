@@ -46,31 +46,6 @@ bool alarm::checkAlarm(uint8_t hour, uint8_t minute){
 
 uint8_t alarm::wakeUP_Sound(){
   return wakeSound;
-
-  // if(!fs_sound_flag){
-  //   switch (wakeSound) {
-  //     case 1:
-  //       play->start((__FlashStringHelper*) sound1);
-  //       break;
-  //     case 2:
-  //       play->start((__FlashStringHelper*) sound2);
-  //       break;
-  //     case 3:
-  //       play->start((__FlashStringHelper*) sound3);
-  //       break;
-  //     default:
-  //       play->start((__FlashStringHelper*) sound1);
-  //       break;
-  //   }
-  //   fs_sound_flag = true;
-  // }
-
-  // play->touch();
-
-  // if (soundNum > len(soundsArray) {
-  //   return
-  // }
-  // play->start((__FlashStringHelper*) soundsArray[soundNum]); 
 }
 
 void alarm::stop(){
@@ -80,4 +55,18 @@ void alarm::stop(){
 
 bool alarm::isRunning(){
   return state;
+}
+
+void alarm::putEEPROM(uint8_t h_addr, uint8_t m_addr, uint8_t snd_addr, uint8_t st_addr){
+  EEPROM.update(h_addr, wakeHour);
+  EEPROM.update(m_addr, wakeMinute);
+  EEPROM.update(snd_addr, wakeSound);
+  EEPROM.update(st_addr, wakeStatus);
+}
+
+void alarm::getEEPROM(uint8_t h_addr, uint8_t m_addr, uint8_t snd_addr, uint8_t st_addr){
+  EEPROM.get(h_addr, wakeHour);
+  EEPROM.get(m_addr, wakeMinute);
+  EEPROM.get(snd_addr, wakeSound);
+  EEPROM.get(st_addr, wakeStatus);
 }

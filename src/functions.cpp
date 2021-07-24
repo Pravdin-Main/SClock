@@ -27,12 +27,12 @@ float dispTemp;
 uint8_t dispHum;
 int dispPres;
 int dispCO2;
-int dispRain;
+// int dispRain;
 int tempHour[15], tempDay[15];
 int humHour[15], humDay[15];
 int pressHour[15], pressDay[15];
 int co2Hour[15], co2Day[15];
-int delta;
+// int delta;
 uint32_t pressure_array[6];
 uint32_t sumX, sumY, sumX2, sumXY;
 float a, b;
@@ -92,7 +92,7 @@ GButton button(BTN_PIN, LOW_PULL, NORM_OPEN);
 GTimer_ms hourPlotTimer((long)4 * 60 * 1000);         // 4 минуты
 GTimer_ms dayPlotTimer((long)1.6 * 60 * 60 * 1000);   // 1.6 часа
 GTimer_ms predictTimer((long)10 * 60 * 1000);         // 10 минут
-GTimer_ms drawDown_param(2000);
+GTimer_ms drawDown_param(1500);
 GTimer_ms drawUp_param(400);
 GTimer_ms backToMain(20000);
 
@@ -473,15 +473,19 @@ void modesTick() {
     if (mode > 6) mode = 0;
 #endif
     changeFlag = true;
+    backToMain.start();
+    backToMain.reset();
   }
 
   if(enc.isLeft()){
     if(mode != 0) mode--;
       else { mode = 8; }
     changeFlag = true;
+    backToMain.start();
+    backToMain.reset();
   }
 
-  if (button.isHolded() || enc.isHolded()) {
+  if (button.isHolded() || enc.isHolded() || backToMain.isReady()) {
     mode = 0;
     changeFlag = true;
   }
@@ -493,6 +497,7 @@ void modesTick() {
       drawClock(hrs, mins, 0, 0, 1);
       if (DISPLAY_TYPE == 1) drawData();
       drawSensors();
+      drawFlags();
     }
     else if(mode > 0 && mode < 9) {
       lcd.clear();
@@ -553,10 +558,10 @@ void drawSensors() {
 #endif
 
   lcd.setCursor(0, 3);
-  lcd.print(dispPres); lcd.print(" mm  rain ");
-  lcd.print(F("       "));
-  lcd.setCursor(13, 3);
-  lcd.print(dispRain); lcd.print("%");
+  lcd.print(dispPres); lcd.print(" mm");
+  // lcd.print(F("       "));
+  // lcd.setCursor(13, 3);
+  // lcd.print(dispRain); lcd.print("%");
 
 #else
   // дисплей 1602
@@ -572,8 +577,8 @@ void drawSensors() {
 #endif
 
   lcd.setCursor(0, 1);
-  lcd.print(String(dispPres) + " mm  rain ");
-  lcd.print(String(dispRain) + "% ");
+  lcd.print(String(dispPres) + " mm");
+  // lcd.print(String(dispRain) + "% ");
 #endif
 }
 
@@ -590,9 +595,11 @@ void plotSensorsTick() {
     humHour[14] = dispHum;
     co2Hour[14] = dispCO2;
 
-    if (PRESSURE) pressHour[14] = dispRain;
-    else pressHour[14] = dispPres;
+  //   if (PRESSURE) pressHour[14] = dispRain;
+  //   else pressHour[14] = dispPres;
   }
+
+  pressHour[14] = dispPres;
 
   // 1.5 часовой таймер
   if (dayPlotTimer.isReady()) {
@@ -646,12 +653,12 @@ void plotSensorsTick() {
       sumX2 += time_array[i] * time_array[i];
       sumXY += (long)time_array[i] * pressure_array[i];
     }
-    a = 0;
-    a = (long)6 * sumXY;             // расчёт коэффициента наклона приямой
-    a = a - (long)sumX * sumY;
-    a = (float)a / (6 * sumX2 - sumX * sumX);
-    delta = a * 6;      // расчёт изменения давления
-    dispRain = map(delta, -250, 250, 100, -100);  // пересчитать в проценты
+    // a = 0;
+    // a = (long)6 * sumXY;             // расчёт коэффициента наклона приямой
+    // a = a - (long)sumX * sumY;
+    // a = (float)a / (6 * sumX2 - sumX * sumX);
+    // delta = a * 6;      // расчёт изменения давления
+    // dispRain = map(delta, -250, 250, 100, -100);  // пересчитать в проценты
     //Serial.println(String(pressure_array[5]) + " " + String(delta) + " " + String(dispRain));   // дебаг
   }
 }
@@ -883,12 +890,15 @@ void alarmTuning(){
     switch (set_alarm){
       case 1:
         alarm1.alarm_set(alarmTune.hour, alarmTune.minute, alarmTune.sound, alarmTune.status);
+        alarm1.putEEPROM(ALARM1_HOUR_ADDR, ALARM1_MIN_ADDR, ALARM1_SOUND_ADDR, ALARM1_STATUS_ADDR);
         break;
       case 2:
         alarm2.alarm_set(alarmTune.hour, alarmTune.minute, alarmTune.sound, alarmTune.status);
+        alarm2.putEEPROM(ALARM2_HOUR_ADDR, ALARM2_MIN_ADDR, ALARM2_SOUND_ADDR, ALARM2_STATUS_ADDR);
         break;
       case 3:
         alarm3.alarm_set(alarmTune.hour, alarmTune.minute, alarmTune.sound, alarmTune.status);
+        alarm3.putEEPROM(ALARM3_HOUR_ADDR, ALARM3_MIN_ADDR, ALARM3_SOUND_ADDR, ALARM3_STATUS_ADDR);
         break;
       default:
         break;
@@ -1004,6 +1014,7 @@ void alarmTuning(){
     drawClock(hrs, mins, 0, 0, 1);
     drawData();
     drawSensors();
+    drawFlags();
     mode = 0;
     backToMain.stop();
   }
@@ -1050,8 +1061,16 @@ void alarmStop(){
     }
 }
 
-void drawAlarmFlag(){
+void drawFlags(){
+
+  lcd.setCursor(8, 3); lcd.print("Alarm:");
+
   if(alarm1.get_wakeStatus() || alarm2.get_wakeStatus() || alarm3.get_wakeStatus()){
+    lcd.setCursor(14, 3); lcd.print("ON");
+  }
+    else { lcd.setCursor(14, 3); lcd.print("OFF"); }
+  
+  if(true){
     lcd.setCursor(19, 3); lcd.print("!");
   }
     else { lcd.setCursor(19, 3); lcd.print(" "); }
@@ -1147,3 +1166,50 @@ void debug_start(){
 // if (RESET_CLOCK || rtc.lostPower()) rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
 
 }
+
+void EEPROM_init(){
+    uint8_t key = EEPROM.read(EEPROM_KEY_ADDR);
+
+    if(key != EEPROM_KEY){
+        EEPROM.write(EEPROM_KEY_ADDR, EEPROM_KEY);
+        alarm1.putEEPROM(ALARM1_HOUR_ADDR, ALARM1_MIN_ADDR, ALARM1_SOUND_ADDR, ALARM1_STATUS_ADDR);
+        alarm2.putEEPROM(ALARM2_HOUR_ADDR, ALARM2_MIN_ADDR, ALARM2_SOUND_ADDR, ALARM2_STATUS_ADDR);
+        alarm3.putEEPROM(ALARM3_HOUR_ADDR, ALARM3_MIN_ADDR, ALARM3_SOUND_ADDR, ALARM3_STATUS_ADDR);
+    }
+
+    alarm1.getEEPROM(ALARM1_HOUR_ADDR, ALARM1_MIN_ADDR, ALARM1_SOUND_ADDR, ALARM1_STATUS_ADDR);
+    alarm2.getEEPROM(ALARM2_HOUR_ADDR, ALARM2_MIN_ADDR, ALARM2_SOUND_ADDR, ALARM2_STATUS_ADDR);
+    alarm3.getEEPROM(ALARM3_HOUR_ADDR, ALARM3_MIN_ADDR, ALARM3_SOUND_ADDR, ALARM3_STATUS_ADDR);
+}
+
+// void EEPROM_put(uint8_t x){
+//   switch(x){
+//     case 1:
+//       alarm1.putEEPROM(ALARM1_HOUR_ADDR, ALARM1_MIN_ADDR, ALARM1_SOUND_ADDR, ALARM1_STATUS_ADDR);
+//       break;
+//     case 2:
+//       alarm2.putEEPROM(ALARM2_HOUR_ADDR, ALARM2_MIN_ADDR, ALARM2_SOUND_ADDR, ALARM2_STATUS_ADDR);
+//       break;
+//     case 3:
+//       alarm3.putEEPROM(ALARM3_HOUR_ADDR, ALARM3_MIN_ADDR, ALARM3_SOUND_ADDR, ALARM3_STATUS_ADDR);
+//       break;
+//     default:
+//       break;
+//   }
+// }
+
+// void EEPROM_get(uint8_t x){
+//   switch(x) {
+//     case 1:
+//       alarm1.getEEPROM(ALARM1_HOUR_ADDR, ALARM1_MIN_ADDR, ALARM1_SOUND_ADDR, ALARM1_STATUS_ADDR);
+//       break;
+//     case 2:
+//       alarm2.getEEPROM(ALARM2_HOUR_ADDR, ALARM2_MIN_ADDR, ALARM2_SOUND_ADDR, ALARM2_STATUS_ADDR);
+//       break;
+//     case 3:
+//       alarm3.getEEPROM(ALARM3_HOUR_ADDR, ALARM3_MIN_ADDR, ALARM3_SOUND_ADDR, ALARM3_STATUS_ADDR);
+//       break;
+//     default:
+//       break;
+//   }
+// }

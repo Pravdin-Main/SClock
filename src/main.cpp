@@ -44,14 +44,16 @@ void setup() {
   // digitalWrite(LED_COM, LED_MODE);
   analogWrite(BACKLIGHT, LCD_BRIGHT_MAX);
 
-    display_init();
+  EEPROM_init();
+
+  display_init();
   // Serial.println("Display inition is DONE");
 
   
 //---------------------DEBUG--------------------------------
 
   // #if (DEBUG == 1)
-    debug_start();
+  debug_start();
   // #endif
 
 //---------------------DEBUG END----------------------------
@@ -90,10 +92,10 @@ void loop() {
 
   if (alarmIs_ON){ 
     alarmStart(alarm_s);
-    Serial.print("Alarm --- "); Serial.println(alarm_s);
+    // Serial.print("Alarm --- "); Serial.println(alarm_s);
     if (Enc_IsHolded()){
       alarmStop();
-      Serial.println("Alarm stopped");
+      // Serial.println("Alarm stopped");
       alarmIs_ON = false;
     }
   }           
@@ -108,7 +110,7 @@ void loop() {
     if (Mode(0) == 0) {                                  // в режиме "главного экрана"
       if (drawSensorsTimer.isReady()) {
         drawSensors();  // обновляем показания датчиков на дисплее с периодом SENS_TIME
-        drawAlarmFlag();
+        drawFlags();
         // Serial.println("Sensors updated");
       }
       
