@@ -23,15 +23,6 @@ void GButton::init() {
 	GButton::setType(HIGH_PULL);
 }
 
-void GButton::setDebounce(uint16_t debounce) {
-	_debounce = debounce;
-}
-void GButton::setTimeout(uint16_t timeout) {
-	_timeout = timeout;
-}
-void GButton::setStepTimeout(uint16_t step_timeout) {
-	_step_timeout = step_timeout;
-}
 void GButton::setType(boolean type) {
 	flags.type = type;
 	if (type) pinMode(_PIN, INPUT);

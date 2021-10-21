@@ -42,6 +42,12 @@ void debug_start();
 #define LED_BRIGHT_MIN 10     // мин яркость светодиода СО2 (0 - 255)
 #define LCD_BRIGHT_MAX 255    // макс яркость подсветки дисплея (0 - 255)
 #define LCD_BRIGHT_MIN 10     // мин яркость подсветки дисплея (0 - 255)
+#define OPTION_DT 255         // Значения по умолчанию
+#define DIS_BRS_DAY_DT 80     // Яркость дисплея днем по умолчанию
+#define DIS_BRS_NIGHT_DT 20   // Яркость дисплея ночью по умолчанию
+#define RGB_BRS_DAY_DT 80     // Яркость светодиода днем по умолчанию
+#define RGB_BRS_NIGHT_DT 20   // Яркость светодиода ночью по умолчанию
+#define VOLUME_DT 50          // Уровень громкости динамика
 
 // #if (LED_MODE == 0)
 //   uint8_t LED_ON = (LED_BRIGHT_MAX);
@@ -198,27 +204,40 @@ struct alarmTuner {
 // float a, b;
 // uint8_t time_array[6];
 
-// #if (WEEK_LANG == 0)
-// static const char *dayNames[]  = {
-//   "Sund",
-//   "Mond",
-//   "Tues",
-//   "Wedn",
-//   "Thur",
-//   "Frid",
-//   "Satu",
-// };
-// #else
-// static const char *dayNames[]  = {
-//   "BOCK",
-//   "POND",
-//   "BTOP",
-//   "CPED",
-//   "4ETB",
-//   "5YAT",
-//   "CYBB",
-// };
-// #endif
+#if (WEEK_LANG == 0)
+static const char *dayNames[]  = {
+  "Sund",
+  "Mond",
+  "Tues",
+  "Wedn",
+  "Thur",
+  "Frid",
+  "Satu",
+};
+static const char *optNames[] = {
+  "Night&Bright",
+  "Alarms OFF",
+  "Alarms RST",
+  "Disp brs day",
+  "Disp brs night",
+  "LED brs day",
+  "LED brs night",
+  "Display mode",
+  "Volume",
+  "Debug start",
+  "Up"
+};
+#else
+static const char *dayNames[]  = {
+  "BOCK",
+  "POND",
+  "BTOP",
+  "CPED",
+  "4ETB",
+  "5YAT",
+  "CYBB",
+};
+#endif
 
 bool Enc_IsClick();
 bool Enc_IsDouble();
@@ -247,8 +266,47 @@ void drawFlags();
 #define ALARM3_SOUND_ADDR 11
 #define ALARM3_STATUS_ADDR 12
 
-void EEPROM_init();
-// void EEPROM_put(uint8_t x);
-// void EEPROM_get(uint8_t x);
+#define OPTION_STATUS_ADDR 13
+#define DIS_BRS_DAY_ADDR 14
+#define DIS_BRS_NIGHT_ADDR 15
+#define RGB_BRS_DAY_ADDR 16
+#define RGB_BRS_NIGHT_ADDR 17
+#define VOLUME_ADDR 18
 
+void EEPROM_init();
+
+void power_control();
+void reload_ch_flg();
+
+//--------------- Options display -----------------
+
+typedef struct option{
+    uint8_t disp_pos;
+    uint8_t param;
+    uint8_t d_param;
+    uint8_t id;
+    String name;
+};
+
+typedef struct print{
+  uint8_t s1_c1; uint8_t s1_c2;
+  uint8_t s2_c1; uint8_t s2_c2;
+  uint8_t s3_c1; uint8_t s3_c2;
+  uint8_t s4_c1; uint8_t s4_c2;
+};
+
+void options();
+void cursor();
+bool cursor_get_pos();
+void opt_upd();
+void opt_change(bool dir);
+void opt_eeprom_upd();
+void opt_eeprom_dwl();
+void processing();
+void opt_up();
+void alarm_OFF();
+void alarm_RST();
+void go_debug();
+void opt_prt(struct print);
+uint8_t opt_fnd(uint8_t pos);
 #endif
