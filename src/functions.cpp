@@ -153,7 +153,6 @@ void inition () {
    }
    readSensors();
    drawSensors();
-   drawFlags();
 }
 
 void Enc_Tick(){
