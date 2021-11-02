@@ -1323,10 +1323,6 @@ void go_debug(){
 }
 #endif
 
-void reset_clock(){
-  if (RESET_CLOCK || rtc.lostPower()) rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
-}
-
 void EEPROM_init(){
     uint8_t key = EEPROM.read(EEPROM_KEY_ADDR);
 
