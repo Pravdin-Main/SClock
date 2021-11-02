@@ -31,33 +31,43 @@ static bool ch_flg_press = true;
 static bool ch_flg_alarm = true;
 static bool ch_flg_power = true;
 static bool low_power;
-
-option N_B, A_OFF, A_RST, D_brs_day, D_brs_night, LED_brs_day, LED_brs_night, Display_mode, vol, debug, up;
-static bool opt_status;   // 0 - N_B, 1 - A_OFF, 2 - A_RST, 3 - debug; 4 - up; 5 - display_mode
-static uint8_t cursor_pos = 1;
-// uint8_t Dis_brs_day, Dis_brs_night, RGB_brs_day, RGB_brs_night, volume, disp_mode_param;
-print opt,lst_opt;
-
-alarmTuner alarmTune;
-
 bool dotFlag;
 bool firstStartFlag = false;
-uint8_t set_alarm;
 bool draw_param;
-float dispTemp;
-uint8_t dispHum;
-int dispPres;
-int dispCO2;
-// int dispRain;
-int tempHour[15], tempDay[15];
-int humHour[15], humDay[15];
-int pressHour[15], pressDay[15];
-int co2Hour[15], co2Day[15];
-// int delta;
-uint32_t pressure_array[6];
-uint32_t sumX, sumY, sumX2, sumXY;
-float a, b;
-uint8_t time_array[6];
+
+#if (OPTION == 1)
+  option N_B, A_OFF, A_RST, D_brs_day, D_brs_night, LED_brs_day, LED_brs_night, Display_mode, vol, debug, up;
+  static bool opt_status;   // 0 - N_B, 1 - A_OFF, 2 - A_RST, 3 - debug; 4 - up; 5 - display_mode
+  static uint8_t cursor_pos = 1;
+  // uint8_t Dis_brs_day, Dis_brs_night, RGB_brs_day, RGB_brs_night, volume, disp_mode_param;
+  print opt,lst_opt;
+#endif
+
+#if (SENSORS == 1)
+  float dispTemp;
+  uint8_t dispHum;
+  int dispPres;
+  int dispCO2;
+  int tempHour[15], tempDay[15];
+  int humHour[15], humDay[15];
+  int pressHour[15], pressDay[15];
+  int co2Hour[15], co2Day[15];
+  uint32_t pressure_array[6];
+  uint32_t sumX, sumY, sumX2, sumXY;
+  float a, b;
+  uint8_t time_array[6];
+
+  // символы
+  // график
+  uint8_t row8[8] = {0b11111,  0b11111,  0b11111,  0b11111,  0b11111,  0b11111,  0b11111,  0b11111};
+  uint8_t row7[8] = {0b00000,  0b11111,  0b11111,  0b11111,  0b11111,  0b11111,  0b11111,  0b11111};
+  uint8_t row6[8] = {0b00000,  0b00000,  0b11111,  0b11111,  0b11111,  0b11111,  0b11111,  0b11111};
+  uint8_t row5[8] = {0b00000,  0b00000,  0b00000,  0b11111,  0b11111,  0b11111,  0b11111,  0b11111};
+  uint8_t row4[8] = {0b00000,  0b00000,  0b00000,  0b00000,  0b11111,  0b11111,  0b11111,  0b11111};
+  uint8_t row3[8] = {0b00000,  0b00000,  0b00000,  0b00000,  0b00000,  0b11111,  0b11111,  0b11111};
+  uint8_t row2[8] = {0b00000,  0b00000,  0b00000,  0b00000,  0b00000,  0b00000,  0b11111,  0b11111};
+  uint8_t row1[8] = {0b00000,  0b00000,  0b00000,  0b00000,  0b00000,  0b00000,  0b00000,  0b11111};
+#endif
 
 #if (LED_MODE == 0)
   uint8_t LED_ON = (LED_BRIGHT_MAX);
@@ -84,17 +94,6 @@ GTimer_ms drawDown_param(1500);
 GTimer_ms drawUp_param(400);
 GTimer_ms backToMain(20000);
 
-// символы
-// график
-uint8_t row8[8] = {0b11111,  0b11111,  0b11111,  0b11111,  0b11111,  0b11111,  0b11111,  0b11111};
-uint8_t row7[8] = {0b00000,  0b11111,  0b11111,  0b11111,  0b11111,  0b11111,  0b11111,  0b11111};
-uint8_t row6[8] = {0b00000,  0b00000,  0b11111,  0b11111,  0b11111,  0b11111,  0b11111,  0b11111};
-uint8_t row5[8] = {0b00000,  0b00000,  0b00000,  0b11111,  0b11111,  0b11111,  0b11111,  0b11111};
-uint8_t row4[8] = {0b00000,  0b00000,  0b00000,  0b00000,  0b11111,  0b11111,  0b11111,  0b11111};
-uint8_t row3[8] = {0b00000,  0b00000,  0b00000,  0b00000,  0b00000,  0b11111,  0b11111,  0b11111};
-uint8_t row2[8] = {0b00000,  0b00000,  0b00000,  0b00000,  0b00000,  0b00000,  0b11111,  0b11111};
-uint8_t row1[8] = {0b00000,  0b00000,  0b00000,  0b00000,  0b00000,  0b00000,  0b00000,  0b11111};
-
 // цифры
 uint8_t LT[8] = {0b00111,  0b01111,  0b11111,  0b11111,  0b11111,  0b11111,  0b11111,  0b11111};
 uint8_t UB[8] = {0b11111,  0b11111,  0b11111,  0b00000,  0b00000,  0b00000,  0b00000,  0b00000};
@@ -105,16 +104,20 @@ uint8_t LR[8] = {0b11111,  0b11111,  0b11111,  0b11111,  0b11111,  0b11111,  0b1
 uint8_t UMB[8] = {0b11111,  0b11111,  0b11111,  0b00000,  0b00000,  0b00000,  0b11111,  0b11111};
 uint8_t LMB[8] = {0b11111,  0b00000,  0b00000,  0b00000,  0b00000,  0b11111,  0b11111,  0b11111};
 
-#if (CO2_SENSOR == 1)
-MHZ19_uart mhz19;
+#if (SENS_CO2 == 1)
+  MHZ19_uart mhz19;
 #endif
 
 RTC_DS3231 rtc;
 DateTime now;
 
-alarm alarm1;
-alarm alarm2;
-alarm alarm3;
+#if (ALARM == 1)
+  uint8_t set_alarm;
+  alarmTuner alarmTune;
+  alarm alarm1;
+  alarm alarm2;
+  alarm alarm3;
+#endif
 
 
 void display_init(){
@@ -122,38 +125,35 @@ void display_init(){
   lcd.backlight();
   lcd.clear();
   backToMain.stop();
-
-  #if (CO2_SENSOR == 1)
-    mhz19.begin(MHZ_TX, MHZ_RX);
-    mhz19.setAutoCalibration(false);
-  #endif
-  rtc.begin();
-  bme.begin();
-  bme.setTempCal(-1);
-  if (RESET_CLOCK || rtc.lostPower()) rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
 }
 
-void inition () {
-    now = rtc.now();
-    secs = now.second();
-    mins = now.minute();
-    hrs = now.hour();
+void get_time() {
+  now = rtc.now();
+  secs = now.second();
+  mins = now.minute();
+  hrs = now.hour();
+}
 
-    bme.readSensor();
-    uint32_t Pressure = bme.getPressure_MB();
-    for (byte i = 0; i < 6; i++) {   // счётчик от 0 до 5
-      pressure_array[i] = Pressure;  // забить весь массив текущим давлением
-      time_array[i] = i;             // забить массив времени числами 0 - 5
-  }
+void draw_main_disp(){
+  #if (DISPLAY_TYPE == 1)
+    get_time();
+    #if (CLOCK == 1)
+      lcd.clear();
+      reload_ch_flg();
+      loadClock();
+      drawClock(hrs, mins, 0, 0);
+      drawData();
+      #if (SENSORS == 1)
+        drawSensors();
+      #endif
+      drawFlags();
+      backToMain.stop();
+    #elif (CLOCK == 2)
+    #elif (CLOCK == 3)
+    #elif (CLOCK == 4)
+    #endif
 
-   if (DISPLAY_TYPE == 1) {
-    loadClock();
-    drawClock(hrs, mins, 0, 0, 1);
-    drawData();
-   }
-   readSensors();
-   drawSensors();
-   drawFlags();
+  #endif
 }
 
 void Enc_Tick(){
@@ -304,7 +304,7 @@ void drawdots(uint8_t x, uint8_t y, bool state) {
   lcd.write(code);
 }
 
-void drawClock(uint8_t hours, uint8_t minutes, uint8_t x, uint8_t y, bool dotState) {
+void drawClock(uint8_t hours, uint8_t minutes, uint8_t x, uint8_t y) {
   if(ch_flg_hr1){
     lcd.setCursor(x, y);
     lcd.print("   ");
@@ -379,49 +379,6 @@ void drawData() {
   
 }
 
-void drawPlot(uint8_t pos, uint8_t row, uint8_t width, uint8_t height, int min_val, int max_val, int *plot_array, uint8_t label) {
-  int max_value = -32000;
-  int min_value = 32000;
-
-  for (byte i = 0; i < 15; i++) {
-    if (plot_array[i] > max_value) max_value = plot_array[i];
-    if (plot_array[i] < min_value) min_value = plot_array[i];
-  }
-  lcd.setCursor(16, 0); lcd.print(max_value);
-  lcd.setCursor(16, 1); lcd.print(labels[label]);
-  lcd.setCursor(16, 2); lcd.print(plot_array[14]);
-  lcd.setCursor(16, 3); lcd.print(min_value);
-
-  for (byte i = 0; i < width; i++) {                  // каждый столбец параметров
-    int fill_val = plot_array[i];
-    fill_val = constrain(fill_val, min_val, max_val);
-    byte infill, fract;
-    // найти количество целых блоков с учётом минимума и максимума для отображения на графике
-    if (plot_array[i] > min_val)
-      infill = floor((float)(plot_array[i] - min_val) / (max_val - min_val) * height * 10);
-    else infill = 0;
-    fract = (float)(infill % 10) * 8 / 10;                   // найти количество оставшихся полосок
-    infill = infill / 10;
-
-    for (byte n = 0; n < height; n++) {     // для всех строк графика
-      if (n < infill && infill > 0) {       // пока мы ниже уровня
-        lcd.setCursor(i, (row - n));        // заполняем полными ячейками
-        lcd.write(0);
-      }
-      if (n >= infill) {                    // если достигли уровня
-        lcd.setCursor(i, (row - n));
-        if (fract > 0) lcd.write(fract);          // заполняем дробные ячейки
-        else lcd.write(16);                       // если дробные == 0, заливаем пустой
-        for (byte k = n + 1; k < height; k++) {   // всё что сверху заливаем пустыми
-          lcd.setCursor(i, (row - k));
-          lcd.write(16);
-        }
-        break;
-      }
-    }
-  }
-}
-
 void loadClock() {
   lcd.createChar(0, LT);
   lcd.createChar(1, UB);
@@ -431,17 +388,6 @@ void loadClock() {
   lcd.createChar(5, LR);
   lcd.createChar(6, UMB);
   lcd.createChar(7, LMB);
-}
-
-void loadPlot() {
-  lcd.createChar(0, row8);
-  lcd.createChar(1, row1);
-  lcd.createChar(2, row2);
-  lcd.createChar(3, row3);
-  lcd.createChar(4, row4);
-  lcd.createChar(5, row5);
-  lcd.createChar(6, row6);
-  lcd.createChar(7, row7);
 }
 
 void setLED(uint8_t color) {
@@ -499,7 +445,7 @@ void modesTick() {
   if (button.isClick() || enc.isRight()) {
     mode++;
 
-#if (CO2_SENSOR == 1)
+#if (SENS_CO2 == 1)
     if (mode > 8) mode = 0;
 #else
     if (mode > 6) mode = 0;
@@ -535,9 +481,11 @@ void modesTick() {
       lcd.clear();
       reload_ch_flg();
       loadClock();
-      drawClock(hrs, mins, 0, 0, 1);
+      drawClock(hrs, mins, 0, 0);
       if (DISPLAY_TYPE == 1) drawData();
+      #if (SENSORS == 1)
       drawSensors();
+      #endif
       drawFlags();
       backToMain.stop();
     }
@@ -545,6 +493,75 @@ void modesTick() {
       lcd.clear();
       loadPlot();
       redrawPlot();
+    }
+  }
+}
+
+//------------------------- SENSORS MODUL ---------------------------------
+#if (SENSORS == 1)
+void init_sens(){
+  #if (SENS_CO2 == 1)
+    mhz19.begin(MHZ_TX, MHZ_RX);
+    mhz19.setAutoCalibration(false);
+  #endif
+  rtc.begin();
+  bme.begin();
+  bme.setTempCal(-1);
+  if (RESET_CLOCK || rtc.lostPower()) rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
+  readSensors();
+  drawSensors();
+}
+
+void loadPlot() {
+  lcd.createChar(0, row8);
+  lcd.createChar(1, row1);
+  lcd.createChar(2, row2);
+  lcd.createChar(3, row3);
+  lcd.createChar(4, row4);
+  lcd.createChar(5, row5);
+  lcd.createChar(6, row6);
+  lcd.createChar(7, row7);
+}
+
+void drawPlot(uint8_t pos, uint8_t row, uint8_t width, uint8_t height, int min_val, int max_val, int *plot_array, uint8_t label) {
+  int max_value = -32000;
+  int min_value = 32000;
+
+  for (byte i = 0; i < 15; i++) {
+    if (plot_array[i] > max_value) max_value = plot_array[i];
+    if (plot_array[i] < min_value) min_value = plot_array[i];
+  }
+  lcd.setCursor(16, 0); lcd.print(max_value);
+  lcd.setCursor(16, 1); lcd.print(labels[label]);
+  lcd.setCursor(16, 2); lcd.print(plot_array[14]);
+  lcd.setCursor(16, 3); lcd.print(min_value);
+
+  for (byte i = 0; i < width; i++) {                  // каждый столбец параметров
+    int fill_val = plot_array[i];
+    fill_val = constrain(fill_val, min_val, max_val);
+    byte infill, fract;
+    // найти количество целых блоков с учётом минимума и максимума для отображения на графике
+    if (plot_array[i] > min_val)
+      infill = floor((float)(plot_array[i] - min_val) / (max_val - min_val) * height * 10);
+    else infill = 0;
+    fract = (float)(infill % 10) * 8 / 10;                   // найти количество оставшихся полосок
+    infill = infill / 10;
+
+    for (byte n = 0; n < height; n++) {     // для всех строк графика
+      if (n < infill && infill > 0) {       // пока мы ниже уровня
+        lcd.setCursor(i, (row - n));        // заполняем полными ячейками
+        lcd.write(0);
+      }
+      if (n >= infill) {                    // если достигли уровня
+        lcd.setCursor(i, (row - n));
+        if (fract > 0) lcd.write(fract);          // заполняем дробные ячейки
+        else lcd.write(16);                       // если дробные == 0, заливаем пустой
+        for (byte k = n + 1; k < height; k++) {   // всё что сверху заливаем пустыми
+          lcd.setCursor(i, (row - k));
+          lcd.write(16);
+        }
+        break;
+      }
     }
   }
 }
@@ -573,32 +590,44 @@ void redrawPlot() {
 
 void readSensors() {
   bme.readSensor();
-  if(bme.getTemperature_C() != dispTemp){
-    dispTemp = bme.getTemperature_C();
-    ch_flg_temp = true;
+  #if (SENS_PRESS == 1)
+  uint32_t Pressure = bme.getPressure_MB();
+  for (byte i = 0; i < 6; i++) {   // счётчик от 0 до 5
+    pressure_array[i] = Pressure;  // забить весь массив текущим давлением
+    time_array[i] = i;             // забить массив времени числами 0 - 5
   }
-
-  if(bme.getHumidity() != dispHum){
-    dispHum = bme.getHumidity();
-    ch_flg_hum = true;
-  }
-
   int dispPres_cache = (float)bme.getPressure_MB() * 0.750062;
   if(dispPres_cache != dispPres){
     dispPres = dispPres_cache;
     ch_flg_press = true;
   }
-#if (CO2_SENSOR == 1)
-  int dispCO2_cache = mhz19.getPPM();
-  if(dispCO2_cache != dispCO2){
-    dispCO2 = dispCO2_cache;
-    ch_flg_co2 = true;
-  }
+  #endif
 
-  if (dispCO2 < 800) setLED(2);
-  else if (dispCO2 < 1200) setLED(3);
-  else if (dispCO2 >= 1200) setLED(1);
-#endif
+  #if (SENS_TEMP == 1)
+  if(bme.getTemperature_C() != dispTemp){
+    dispTemp = bme.getTemperature_C();
+    ch_flg_temp = true;
+  }
+  #endif
+
+  #if (SENS_HUM == 1)
+  if(bme.getHumidity() != dispHum){
+    dispHum = bme.getHumidity();
+    ch_flg_hum = true;
+  }
+  #endif
+
+  #if (SENS_CO2 == 1)
+    int dispCO2_cache = mhz19.getPPM();
+    if(dispCO2_cache != dispCO2){
+      dispCO2 = dispCO2_cache;
+      ch_flg_co2 = true;
+    }
+
+    if (dispCO2 < 800) setLED(2);
+    else if (dispCO2 < 1200) setLED(3);
+    else if (dispCO2 >= 1200) setLED(1);
+  #endif
 }
 
 void drawSensors() {
@@ -622,7 +651,7 @@ void drawSensors() {
     ch_flg_hum = false;
   }
 
-#if (CO2_SENSOR == 1)
+#if (SENS_CO2 == 1)
   if(ch_flg_co2){
     lcd.setCursor(12, 2);
     lcd.print("        ");
@@ -654,7 +683,7 @@ void drawSensors() {
   lcd.setCursor(6, 0);
   lcd.print(String(dispHum) + "% ");
 
-#if (CO2_SENSOR == 1)
+#if (SENS_CO2 == 1)
   lcd.print(String(dispCO2) + "ppm");
   if (dispCO2 < 1000) lcd.print(" ");
 #endif
@@ -745,6 +774,9 @@ void plotSensorsTick() {
     //Serial.println(String(pressure_array[5]) + " " + String(delta) + " " + String(dispRain));   // дебаг
   }
 }
+#endif
+
+//----------------------- END OF SENSORS MODULE ------------------------------------
 
 void clockTick() {
   dotFlag = !dotFlag;
@@ -757,7 +789,7 @@ void clockTick() {
         ch_flg_min1 = true;
       }
         else{ ch_flg_min2 = true; }
-      if (mins <= 59 && mode == 0) drawClock(hrs, mins, 0, 0, 1);
+      if (mins <= 59 && mode == 0) drawClock(hrs, mins, 0, 0);
     }
     if (mins > 59) {      // каждый час
       now = rtc.now();
@@ -777,7 +809,7 @@ void clockTick() {
         ch_flg_week = true;
       }
       if (mode == 0) {
-        drawClock(hrs, mins, 0, 0, 1);
+        drawClock(hrs, mins, 0, 0);
         drawData();
       }
       if (hrs > 23) {
@@ -799,6 +831,7 @@ void clockTick() {
 
 //---------------------ALARM--------------------------------------------------
 
+#if (ALARM == 1)
 void drawAlarmClock(uint8_t hours, uint8_t minutes, uint8_t x, uint8_t y, bool draw) {
 
   if(change_flag){
@@ -1111,13 +1144,7 @@ void alarmTuning(){
   if(backToMain.isReady() || button.isHolded()){
     mode = 0;
     firstStartFlag = false;
-    lcd.clear();
-    reload_ch_flg();
-    loadClock();
-    drawClock(hrs, mins, 0, 0, 1);
-    drawData();
-    drawSensors();
-    drawFlags();
+    draw_main_disp();
     backToMain.stop();
   }
 }
@@ -1161,10 +1188,20 @@ void alarmStop(){
       alarm3.stop();
       play_sound(0);
     }
+    ch_flg_alarm = true;
 }
 
-void drawFlags(){
+void alarm_OFF(){
 
+}
+
+void alarm_RST(){
+
+}
+#endif
+
+void drawFlags(){
+  #if (ALARM == 1)
   if(ch_flg_alarm){
     lcd.setCursor(8, 3);
     lcd.print("          ");
@@ -1176,6 +1213,7 @@ void drawFlags(){
       else { lcd.setCursor(14, 3); lcd.print("OFF"); }
     ch_flg_alarm = false;
   }
+  #endif
 
   if(ch_flg_power){
     lcd.setCursor(18, 3);
@@ -1189,15 +1227,16 @@ void drawFlags(){
   }  
 }
 
+#if (DEBUG == 1)
 void debug_start(){
-    #if (DEBUG == 1 && DISPLAY_TYPE == 1)
+    #if (DISPLAY_TYPE == 1)
         Serial.begin(9600);
         boolean status = true;
         lcd.clear();
 
         setLED(1);
 
-    #if (CO2_SENSOR == 1)
+    #if (SENS_CO2 == 1)
         lcd.setCursor(0, 0);
         lcd.print(F("MHZ-19... "));
         Serial.print(F("MHZ-19... "));
@@ -1262,7 +1301,7 @@ void debug_start(){
     }
 #else
 
-    // #if (CO2_SENSOR == 1)
+    // #if (SENS_CO2 == 1)
     //     mhz19.begin(MHZ_TX, MHZ_RX);
     //     mhz19.setAutoCalibration(false);
     // #endif
@@ -1276,8 +1315,16 @@ void debug_start(){
         Adafruit_BME280::SAMPLING_X1, // humidity
         Adafruit_BME280::FILTER_OFF   );*/
 #endif
-// if (RESET_CLOCK || rtc.lostPower()) rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
 
+}
+
+void go_debug(){
+
+}
+#endif
+
+void reset_clock(){
+  if (RESET_CLOCK || rtc.lostPower()) rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
 }
 
 void EEPROM_init(){
@@ -1285,31 +1332,42 @@ void EEPROM_init(){
 
     if(key != EEPROM_KEY){
         EEPROM.write(EEPROM_KEY_ADDR, EEPROM_KEY);
-        alarm1.putEEPROM(ALARM1_HOUR_ADDR, ALARM1_MIN_ADDR, ALARM1_SOUND_ADDR, ALARM1_STATUS_ADDR);
-        alarm2.putEEPROM(ALARM2_HOUR_ADDR, ALARM2_MIN_ADDR, ALARM2_SOUND_ADDR, ALARM2_STATUS_ADDR);
-        alarm3.putEEPROM(ALARM3_HOUR_ADDR, ALARM3_MIN_ADDR, ALARM3_SOUND_ADDR, ALARM3_STATUS_ADDR);
-        opt_status = OPTION_DT;
-        option N_B {1, bitRead(opt_status, 0), bitRead(opt_status, 0), 1, optNames[0]};
-        option A_OFF {2, bitRead(opt_status, 1), bitRead(opt_status, 1), 2, optNames[1]};
-        option A_RST {3, bitRead(opt_status, 2), bitRead(opt_status, 2), 3, optNames[2]};
-        option D_brs_day {4, DIS_BRS_DAY_DT, DIS_BRS_DAY_DT, 4, optNames[3]};
-        option D_brs_night {5, DIS_BRS_NIGHT_DT, DIS_BRS_NIGHT_DT, 5, optNames[4]};
-        option LED_brs_day {6, RGB_BRS_DAY_DT, RGB_BRS_DAY_DT, 6, optNames[5]};
-        option LED_brs_night {7, RGB_BRS_NIGHT_DT, RGB_BRS_NIGHT_DT, 7, optNames[6]};
-        option Display_mode {8, bitRead(opt_status, 5), bitRead(opt_status, 5), 8, optNames[7]};
-        option vol {9, VOLUME_DT, VOLUME_DT, 9, optNames[8]};
-        option debug {10, bitRead(opt_status, 3), bitRead(opt_status, 3), 10, optNames[9]};
-        option up {11, false, false, 11, optNames[10]};
-        opt_eeprom_upd();
+        #if (ALARM == 1)
+          alarm1.putEEPROM(ALARM1_HOUR_ADDR, ALARM1_MIN_ADDR, ALARM1_SOUND_ADDR, ALARM1_STATUS_ADDR);
+          alarm2.putEEPROM(ALARM2_HOUR_ADDR, ALARM2_MIN_ADDR, ALARM2_SOUND_ADDR, ALARM2_STATUS_ADDR);
+          alarm3.putEEPROM(ALARM3_HOUR_ADDR, ALARM3_MIN_ADDR, ALARM3_SOUND_ADDR, ALARM3_STATUS_ADDR);
+        #endif
+
+        #if (OPTION == 1)
+          opt_status = OPTION_DT;
+          option N_B {1, bitRead(opt_status, 0), bitRead(opt_status, 0), 1, optNames[0]};
+          option A_OFF {2, bitRead(opt_status, 1), bitRead(opt_status, 1), 2, optNames[1]};
+          option A_RST {3, bitRead(opt_status, 2), bitRead(opt_status, 2), 3, optNames[2]};
+          option D_brs_day {4, DIS_BRS_DAY_DT, DIS_BRS_DAY_DT, 4, optNames[3]};
+          option D_brs_night {5, DIS_BRS_NIGHT_DT, DIS_BRS_NIGHT_DT, 5, optNames[4]};
+          option LED_brs_day {6, RGB_BRS_DAY_DT, RGB_BRS_DAY_DT, 6, optNames[5]};
+          option LED_brs_night {7, RGB_BRS_NIGHT_DT, RGB_BRS_NIGHT_DT, 7, optNames[6]};
+          option Display_mode {8, bitRead(opt_status, 5), bitRead(opt_status, 5), 8, optNames[7]};
+          option vol {9, VOLUME_DT, VOLUME_DT, 9, optNames[8]};
+          option debug {10, bitRead(opt_status, 3), bitRead(opt_status, 3), 10, optNames[9]};
+          option up {11, false, false, 11, optNames[10]};
+          opt_eeprom_upd();
+        #endif
     }
       else{
-        opt_eeprom_dwl();
-        alarm1.getEEPROM(ALARM1_HOUR_ADDR, ALARM1_MIN_ADDR, ALARM1_SOUND_ADDR, ALARM1_STATUS_ADDR);
-        alarm2.getEEPROM(ALARM2_HOUR_ADDR, ALARM2_MIN_ADDR, ALARM2_SOUND_ADDR, ALARM2_STATUS_ADDR);
-        alarm3.getEEPROM(ALARM3_HOUR_ADDR, ALARM3_MIN_ADDR, ALARM3_SOUND_ADDR, ALARM3_STATUS_ADDR);
+        #if (OPTION == 1)
+          opt_eeprom_dwl();
+        #endif
+
+        #if (ALARM == 1)
+          alarm1.getEEPROM(ALARM1_HOUR_ADDR, ALARM1_MIN_ADDR, ALARM1_SOUND_ADDR, ALARM1_STATUS_ADDR);
+          alarm2.getEEPROM(ALARM2_HOUR_ADDR, ALARM2_MIN_ADDR, ALARM2_SOUND_ADDR, ALARM2_STATUS_ADDR);
+          alarm3.getEEPROM(ALARM3_HOUR_ADDR, ALARM3_MIN_ADDR, ALARM3_SOUND_ADDR, ALARM3_STATUS_ADDR);
+        #endif
       }
 }
 
+#if (OPTION == 1)
 void power_control(){
   if(true){
     low_power = true;
@@ -1362,14 +1420,7 @@ void options(){
     mode = 0;
     firstStartFlag = false;
     change_flag = false;
-    lcd.clear();
-    reload_ch_flg();
-    loadClock();
-    drawClock(hrs, mins, 0, 0, 1);
-    drawData();
-    drawSensors();
-    drawFlags();
-    backToMain.stop();
+    draw_main_disp();
   }
 
 
@@ -1510,7 +1561,9 @@ bool cursor_get_pos(){
             change_flag = true;
             break;
           case 110:
-            go_debug();
+            #if (DEBUG == 1)
+              go_debug();
+            #endif
             break;
           default:
             break;
@@ -1826,15 +1879,4 @@ uint8_t opt_fnd(uint8_t pos){
   }
   return 0;
 }
-
-void alarm_OFF(){
-
-}
-
-void alarm_RST(){
-
-}
-
-void go_debug(){
-
-}
+#endif

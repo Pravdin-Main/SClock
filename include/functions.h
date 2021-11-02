@@ -2,11 +2,25 @@
 #define functions_h
 
 #include <Arduino.h>
-#include "sound.h"
 
+//-------------------------- Modules ----------------------
+
+#define CLOCK 1       //1 - clock type 1; 2 - clock type 2; 3 - clock type 3; 4 - clock type 4
+#define ALARM 1       //0 - alarm module OFF; 1 - alarm module ON
+#define OPTION 1      //0 - options OFF; 1 - options ON
+#define SENSORS 1     //0 - sensors OFF; 1 - sensors - ON
+#define SENS_CO2 1    //0 - CO2 sensor OFF; 1 - CO2 sensor ON
+#define SENS_TEMP 1   //0 - temperature sensor OFF; 1 - remperature sensor ON
+#define SENS_HUM 1    //0 - hummadity sensor OFF; 1 - hummadity sensor ON
+#define SENS_PRESS 1  //0 - pressure sensor OFF; 1 - pressure sensor ON
+
+//---------------------------------------------------------
+
+#define EEPROM_KEY_ADDR 0
+#define EEPROM_KEY 150
 #define DEBUG 0             // вывод на дисплей лог инициализации датчиков при запуске. Для дисплея 1602 не работает! Но дублируется через порт!
 void debug_start();
-#define RESET_CLOCK 0       // сброс часов на время загрузки прошивки (для модуля с несъёмной батарейкой). Не забудь поставить 0 и прошить ещё раз!
+#define RESET_CLOCK 1       // сброс часов на время загрузки прошивки (для модуля с несъёмной батарейкой). Не забудь поставить 0 и прошить ещё раз!
 
 // Общие настройки
 #define DISP_MODE 1         // в правом верхнем углу отображать: 0 - год, 1 - день недели, 2 - секунды
@@ -15,7 +29,6 @@ void debug_start();
 
 #define WEEK_LANG 0         // язык дня недели: 0 - английский, 1 - русский (транслит)
 #define PRESSURE 0          // 0 - график давления, 1 - график прогноза дождя (вместо давления). Не забудь поправить пределы гроафика
-#define CO2_SENSOR 1        // включить или выключить поддержку/вывод с датчика СО2 (1 вкл, 0 выкл)
 #define LED_MODE 0          // тип RGB светодиода: 0 - главный катод, 1 - главный анод
 #define BLUE_YELLOW 0       // жёлтый цвет вместо синего (1 да, 0 нет) но из за особенностей подключения жёлтый не такой яркий
 
@@ -49,160 +62,60 @@ void debug_start();
 #define RGB_BRS_NIGHT_DT 20   // Яркость светодиода ночью по умолчанию
 #define VOLUME_DT 50          // Уровень громкости динамика
 
-// #if (LED_MODE == 0)
-//   uint8_t LED_ON = (LED_BRIGHT_MAX);
-//   uint8_t LED_OFF = (LED_BRIGHT_MIN);
-// #else
-//   uint8_t LED_ON = (255 - LED_BRIGHT_MAX);
-//   uint8_t LED_OFF = (255 - LED_BRIGHT_MIN);
-// #endif
-
-// пределы отображения для графиков
-#define TEMP_MIN 15         // Минимальны уровень отображения графика температуры
-#define TEMP_MAX 35         // Максимальный уровень отображения графика температуры
-#define HUM_MIN 0           // Минимальный уровень отображения графика влажности
-#define HUM_MAX 100         // Максимальный уровень отображения графика влажности
-#define PRESS_MIN -100      // Минимальный уровень отображения графика давления
-#define PRESS_MAX 100       // Максимальный уровень отображения графика давления
-#define CO2_MIN 300         // Минимальный уровень отображения графика СО2
-#define CO2_MAX 2000        // Максимальный уровень отображения графика СО2
-
 #include <LiquidCrystal_I2C.h>
-// #if (DISPLAY_TYPE == 1)
-// LiquidCrystal_I2C lcd(DISPLAY_ADDR, 20, 4);
-// #else
-// LiquidCrystal_I2C lcd(DISPLAY_ADDR, 16, 2); 
-// #endif
 void display_init();
 
-#include <Adafruit_Sensor.h>
-//#include <Adafruit_BME280.h>
-#include <RTClib.h>
-
-#include <GyverTimer.h>
-// GTimer_ms hourPlotTimer((long)4 * 60 * 1000);         // 4 минуты
-// GTimer_ms dayPlotTimer((long)1.6 * 60 * 60 * 1000);   // 1.6 часа
-// GTimer_ms predictTimer((long)10 * 60 * 1000);         // 10 минут
-// GTimer_ms drawDown_param(1000);
-// GTimer_ms drawUp_param(200);
-// GTimer_ms backToMain(10000);
-
-#include <GyverEncoder.h>
-// Encoder enc(CLK, DT, SW, TYPE2);
-
-#include <cactus_io_BME280_I2C.h>
-// BME280_I2C bme(0x76);
-
-#include <GyverButton.h>
-// GButton button(BTN_PIN, LOW_PULL, NORM_OPEN);
-
-// // символы
-// // график
-// uint8_t row8[8] = {0b11111,  0b11111,  0b11111,  0b11111,  0b11111,  0b11111,  0b11111,  0b11111};
-// uint8_t row7[8] = {0b00000,  0b11111,  0b11111,  0b11111,  0b11111,  0b11111,  0b11111,  0b11111};
-// uint8_t row6[8] = {0b00000,  0b00000,  0b11111,  0b11111,  0b11111,  0b11111,  0b11111,  0b11111};
-// uint8_t row5[8] = {0b00000,  0b00000,  0b00000,  0b11111,  0b11111,  0b11111,  0b11111,  0b11111};
-// uint8_t row4[8] = {0b00000,  0b00000,  0b00000,  0b00000,  0b11111,  0b11111,  0b11111,  0b11111};
-// uint8_t row3[8] = {0b00000,  0b00000,  0b00000,  0b00000,  0b00000,  0b11111,  0b11111,  0b11111};
-// uint8_t row2[8] = {0b00000,  0b00000,  0b00000,  0b00000,  0b00000,  0b00000,  0b11111,  0b11111};
-// uint8_t row1[8] = {0b00000,  0b00000,  0b00000,  0b00000,  0b00000,  0b00000,  0b00000,  0b11111};
-
-// // цифры
-// uint8_t LT[8] = {0b00111,  0b01111,  0b11111,  0b11111,  0b11111,  0b11111,  0b11111,  0b11111};
-// uint8_t UB[8] = {0b11111,  0b11111,  0b11111,  0b00000,  0b00000,  0b00000,  0b00000,  0b00000};
-// uint8_t RT[8] = {0b11100,  0b11110,  0b11111,  0b11111,  0b11111,  0b11111,  0b11111,  0b11111};
-// uint8_t LL[8] = {0b11111,  0b11111,  0b11111,  0b11111,  0b11111,  0b11111,  0b01111,  0b00111};
-// uint8_t LB[8] = {0b00000,  0b00000,  0b00000,  0b00000,  0b00000,  0b11111,  0b11111,  0b11111};
-// uint8_t LR[8] = {0b11111,  0b11111,  0b11111,  0b11111,  0b11111,  0b11111,  0b11110,  0b11100};
-// uint8_t UMB[8] = {0b11111,  0b11111,  0b11111,  0b00000,  0b00000,  0b00000,  0b11111,  0b11111};
-// uint8_t LMB[8] = {0b11111,  0b00000,  0b00000,  0b00000,  0b00000,  0b11111,  0b11111,  0b11111};
-
-
-// uint8_t mode = 0;
-// bool dotFlag;
-
-#if (CO2_SENSOR == 1)
-#include <MHZ19_uart.h>
-// MHZ19_uart mhz19;
+#if (SENSORS == 1)
+  #include <Adafruit_Sensor.h>
+  #include <Adafruit_BME280.h>
 #endif
 
 #include <RTClib.h>
-// RTC_DS3231 rtc;
-// DateTime now;
+#include <GyverTimer.h>
+#include <GyverEncoder.h>
+#include <cactus_io_BME280_I2C.h>
+#include <GyverButton.h>
 
-/*
-  0 часы и данные
-  1 график температуры за час
-  2 график температуры за сутки
-  3 график влажности за час
-  4 график влажности за сутки
-  5 график давления за час
-  6 график давления за сутки
-  7 график углекислого за час
-  8 график углекислого за сутки
-*/
+#if (SENS_CO2 == 1)
+  #include <MHZ19_uart.h>
+#endif
 
 void drawDig(uint8_t dig, uint8_t x, uint8_t y);
 void drawdots(uint8_t x, uint8_t y, bool state);
-void drawClock(uint8_t hours, uint8_t minutes, uint8_t x, uint8_t y, bool dotState);
+void drawClock(uint8_t hours, uint8_t minutes, uint8_t x, uint8_t y);
 void drawData();
 void drawPlot(uint8_t pos, uint8_t row, uint8_t width, uint8_t height, int min_val, int max_val, int *plot_array, uint8_t label);
 void loadClock();
 void loadPlot();
+void redrawPlot();
+
 void setLED(uint8_t color);
 void checkBrightness();
+
 void modesTick();
-void redrawPlot();
+
+void init_sens();
 void readSensors();
 void drawSensors();
 void plotSensorsTick();
+
 void clockTick();
-void inition ();
+void get_time();
 
-#include "alarm.h"
-// alarm alarm1;
-// alarm alarm2;
-// alarm alarm3;
+void draw_main_disp();
 
-void alarmTuning();
-uint8_t alarmControl();
-void alarmStart(uint8_t set);
-void drawAlarmClock(uint8_t hours, uint8_t minutes, uint8_t x, uint8_t y, bool draw);
-void alarmStop();
+bool Enc_IsClick();
+bool Enc_IsDouble();
+bool Enc_IsHolded();
+void Enc_Tick();
+void Enc_Reset();
 
-struct alarmTuner {
-    int8_t hour;
-    int8_t minute;
-    int8_t sound;
-    bool status;
-};
-
-// static int8_t hrs;
-// static int8_t mins;
-// static int8_t secs;
-
-// bool firstStartFlag = false;
-// uint8_t set_alarm;
-// static uint8_t set_param;
-// bool draw_param;
-
-// переменные для вывода
-// float dispTemp;
-// uint8_t dispHum;
-// int dispPres;
-// int dispCO2;
-// int dispRain;
-
-// массивы графиков
-// int tempHour[15], tempDay[15];
-// int humHour[15], humDay[15];
-// int pressHour[15], pressDay[15];
-// int co2Hour[15], co2Day[15];
-// int delta;
-// uint32_t pressure_array[6];
-// uint32_t sumX, sumY, sumX2, sumXY;
-// float a, b;
-// uint8_t time_array[6];
+uint8_t Mode(uint8_t x);
+void drawFlags();
+void EEPROM_init();
+void power_control();
+void reload_ch_flg();
+void reset_clock();
 
 #if (WEEK_LANG == 0)
 static const char *dayNames[]  = {
@@ -239,74 +152,92 @@ static const char *dayNames[]  = {
 };
 #endif
 
-bool Enc_IsClick();
-bool Enc_IsDouble();
-bool Enc_IsHolded();
-void Enc_Tick();
-void Enc_Reset();
-uint8_t Mode(uint8_t x);
 
-void drawFlags();
 
-#define EEPROM_KEY_ADDR 0
-#define EEPROM_KEY 150
+#if (ALARM == 1)
+  #include "sound.h"
+  #include "alarm.h"
 
-#define ALARM1_HOUR_ADDR 1
-#define ALARM1_MIN_ADDR 2
-#define ALARM1_SOUND_ADDR 3
-#define ALARM1_STATUS_ADDR 4
+  #define ALARM1_HOUR_ADDR 1
+  #define ALARM1_MIN_ADDR 2
+  #define ALARM1_SOUND_ADDR 3
+  #define ALARM1_STATUS_ADDR 4
 
-#define ALARM2_HOUR_ADDR 5
-#define ALARM2_MIN_ADDR 6
-#define ALARM2_SOUND_ADDR 7
-#define ALARM2_STATUS_ADDR 8
+  #define ALARM2_HOUR_ADDR 5
+  #define ALARM2_MIN_ADDR 6
+  #define ALARM2_SOUND_ADDR 7
+  #define ALARM2_STATUS_ADDR 8
 
-#define ALARM3_HOUR_ADDR 9
-#define ALARM3_MIN_ADDR 10
-#define ALARM3_SOUND_ADDR 11
-#define ALARM3_STATUS_ADDR 12
+  #define ALARM3_HOUR_ADDR 9
+  #define ALARM3_MIN_ADDR 10
+  #define ALARM3_SOUND_ADDR 11
+  #define ALARM3_STATUS_ADDR 12
 
-#define OPTION_STATUS_ADDR 13
-#define DIS_BRS_DAY_ADDR 14
-#define DIS_BRS_NIGHT_ADDR 15
-#define RGB_BRS_DAY_ADDR 16
-#define RGB_BRS_NIGHT_ADDR 17
-#define VOLUME_ADDR 18
+  void alarmTuning();
+  uint8_t alarmControl();
+  void alarmStart(uint8_t set);
+  void drawAlarmClock(uint8_t hours, uint8_t minutes, uint8_t x, uint8_t y, bool draw);
+  void alarmStop();
 
-void EEPROM_init();
-
-void power_control();
-void reload_ch_flg();
+  struct alarmTuner {
+    int8_t hour;
+    int8_t minute;
+    int8_t sound;
+    bool status;
+  };
+  void alarm_OFF();
+  void alarm_RST();
+#endif
 
 //--------------- Options display -----------------
+#if (OPTION == 1)
+  #define OPTION_STATUS_ADDR 13
+  #define DIS_BRS_DAY_ADDR 14
+  #define DIS_BRS_NIGHT_ADDR 15
+  #define RGB_BRS_DAY_ADDR 16
+  #define RGB_BRS_NIGHT_ADDR 17
+  #define VOLUME_ADDR 18
 
-typedef struct option{
+  // пределы отображения для графиков
+  #define TEMP_MIN 15         // Минимальны уровень отображения графика температуры
+  #define TEMP_MAX 35         // Максимальный уровень отображения графика температуры
+  #define HUM_MIN 0           // Минимальный уровень отображения графика влажности
+  #define HUM_MAX 100         // Максимальный уровень отображения графика влажности
+  #define PRESS_MIN -100      // Минимальный уровень отображения графика давления
+  #define PRESS_MAX 100       // Максимальный уровень отображения графика давления
+  #define CO2_MIN 300         // Минимальный уровень отображения графика СО2
+  #define CO2_MAX 2000        // Максимальный уровень отображения графика СО2
+
+  typedef struct option{
     uint8_t disp_pos;
     uint8_t param;
     uint8_t d_param;
     uint8_t id;
     String name;
-};
+  };
 
-typedef struct print{
-  uint8_t s1_c1; uint8_t s1_c2;
-  uint8_t s2_c1; uint8_t s2_c2;
-  uint8_t s3_c1; uint8_t s3_c2;
-  uint8_t s4_c1; uint8_t s4_c2;
-};
+  typedef struct print{
+    uint8_t s1_c1; uint8_t s1_c2;
+    uint8_t s2_c1; uint8_t s2_c2;
+    uint8_t s3_c1; uint8_t s3_c2;
+    uint8_t s4_c1; uint8_t s4_c2;
+  };
 
-void options();
-void cursor();
-bool cursor_get_pos();
-void opt_upd();
-void opt_change(bool dir);
-void opt_eeprom_upd();
-void opt_eeprom_dwl();
-void processing();
-void opt_up();
-void alarm_OFF();
-void alarm_RST();
-void go_debug();
-void opt_prt(struct print);
-uint8_t opt_fnd(uint8_t pos);
+  void options();
+  void cursor();
+  bool cursor_get_pos();
+  void opt_upd();
+  void opt_change(bool dir);
+  void opt_eeprom_upd();
+  void opt_eeprom_dwl();
+  void processing();
+  void opt_up();
+  void opt_prt(struct print);
+  uint8_t opt_fnd(uint8_t pos);
+#endif
+
+#if (DEBUG == 1)
+  void go_debug();
+#endif
+
 #endif
