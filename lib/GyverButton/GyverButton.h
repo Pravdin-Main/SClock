@@ -50,6 +50,9 @@ class GButton
 														// NORM_OPEN - кнопка по умолчанию разомкнута (по умолчанию)
 														// NORM_CLOSE - кнопка по умолчанию замкнута
 	
+	void setDebounce(uint16_t debounce);				// установка времени антидребезга (по умолчанию 80 мс)
+	void setTimeout(uint16_t timeout);					// установка таймаута удержания (по умолчанию 500 мс)	
+	void setStepTimeout(uint16_t step_timeout);			// установка таймаута между инкрементами (по умолчанию 400 мс)	
 	void setType(boolean type);							// установка типа кнопки (HIGH_PULL - подтянута к питанию, LOW_PULL - к gnd)	
 	void setDirection(boolean dir);						// установка направления (разомкнута/замкнута по умолчанию - NORM_OPEN, NORM_CLOSE)	
 	

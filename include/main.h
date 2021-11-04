@@ -57,14 +57,12 @@ byte time_array[6];*/
 Adafruit_BME280 bme;*/
 
 #include <GyverTimer.h>
-GTimer_ms sensorsTimer(SENS_TIME);            //Check sensor timer 30 sec
-GTimer_ms drawSensorsTimer(SENS_TIME);        //Drawing sensors timer 30 sec
-GTimer_ms clockTimer(500);                    //Get real time every 0.5 sec
-GTimer_ms plotTimer(240000);                  //Drawing plot any 4 min
-GTimer_ms brightTimer(2000);                  //Check brightness 2 sec
-GTimer_ms checkAlarm(ALARMCHECK);             //Check alarm's time 10 sec
-GTimer_ms powerControlTimer(1*60*60*1000);    //Check power voltage every 1 hour
-
+GTimer_ms sensorsTimer(SENS_TIME);      //Check sensor timer
+GTimer_ms drawSensorsTimer(SENS_TIME);  //Drawing sensors timer
+GTimer_ms clockTimer(500);              //Get real time every 0.5 sec
+GTimer_ms plotTimer(240000);            //Drawing plot any 4 min
+GTimer_ms brightTimer(2000);            //Check brightness 2 sec
+GTimer_ms checkAlarm(ALARMCHECK);       //Check alarm's time 
 
 bool alarmIs_ON = false;
 

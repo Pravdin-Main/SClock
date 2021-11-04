@@ -8,6 +8,13 @@ GTimer_ms::GTimer_ms(uint32_t interval) {
 	_timer = millis();
 }
 
+void GTimer_ms::setInterval(uint32_t interval) {
+	_interval = interval;
+	GTimer_ms::reset();
+}
+void GTimer_ms::setMode(boolean mode) {
+	_mode = mode;
+}
 void GTimer_ms::start() {
 	_state = true;
 }
@@ -35,6 +42,13 @@ GTimer_us::GTimer_us(uint32_t interval) {
 	_timer = micros();
 }
 
+void GTimer_us::setInterval(uint32_t interval) {
+	_interval = interval;
+	_timer = micros();
+}
+void GTimer_us::setMode(boolean mode) {
+	_mode = mode;
+}
 void GTimer_us::start() {
 	_state = true;
 }
