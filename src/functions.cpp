@@ -24,11 +24,18 @@ static bool ch_flg_min2 = true;
 static bool ch_flg_day = true;
 static bool ch_flg_month = true;
 static bool ch_flg_week = true;
-static bool ch_flg_temp = true;
-static bool ch_flg_hum = true;
-static bool ch_flg_co2 = true;
-static bool ch_flg_press = true;
-static bool ch_flg_alarm = true;
+
+#if (SENSORS == 1)
+  static bool ch_flg_temp = true;
+  static bool ch_flg_hum = true;
+  static bool ch_flg_co2 = true;
+  static bool ch_flg_press = true;
+#endif
+
+#if (ALARM == 1)
+  static bool ch_flg_alarm = true;
+#endif
+
 static bool ch_flg_power = true;
 static bool low_power;
 bool dotFlag;
@@ -434,9 +441,11 @@ void checkBrightness() {
     LED_ON = (255 - LED_BRIGHT_MAX);
 #endif
   }
+  #if (SENSORS == 1 && SENS_CO2 == 1)
   if (dispCO2 < 800) setLED(2);
   else if (dispCO2 < 1200) setLED(3);
   else if (dispCO2 >= 1200) setLED(1);
+  #endif
 }
 
 void modesTick() {
@@ -491,8 +500,10 @@ void modesTick() {
     }
     else if(mode > 0 && mode < 9) {
       lcd.clear();
-      loadPlot();
-      redrawPlot();
+      #if (SENSORS == 1)
+        loadPlot();
+        redrawPlot();
+      #endif
     }
   }
 }
@@ -823,10 +834,12 @@ void clockTick() {
     }
   }
   if (mode == 0) drawdots(7, 0, dotFlag);
+  #if (SENSORS == 1 && SENS_CO2 == 1)
   if (dispCO2 >= 1200) {
     if (dotFlag) setLED(1);
     else setLED(0);
   }
+  #endif
 }
 
 //---------------------ALARM--------------------------------------------------
@@ -1367,7 +1380,28 @@ void EEPROM_init(){
       }
 }
 
-#if (OPTION == 1)
+void reload_ch_flg(){
+  ch_flg_hr1 = true;
+  ch_flg_hr2 = true;
+  ch_flg_min1 = true;
+  ch_flg_min2 = true;
+  ch_flg_day = true;
+  ch_flg_month = true;
+  ch_flg_week = true;
+
+  #if (SENSORS == 1)
+    ch_flg_temp = true;
+    ch_flg_hum = true;
+    ch_flg_co2 = true;
+    ch_flg_press = true;
+  #endif
+
+  #if (ALARM == 1)
+    ch_flg_alarm = true;
+    ch_flg_power = true;
+  #endif
+}
+
 void power_control(){
   if(true){
     low_power = true;
@@ -1379,21 +1413,7 @@ void power_control(){
     }
 }
 
-void reload_ch_flg(){
-  ch_flg_hr1 = true;
-  ch_flg_hr2 = true;
-  ch_flg_min1 = true;
-  ch_flg_min2 = true;
-  ch_flg_day = true;
-  ch_flg_month = true;
-  ch_flg_week = true;
-  ch_flg_temp = true;
-  ch_flg_hum = true;
-  ch_flg_co2 = true;
-  ch_flg_press = true;
-  ch_flg_alarm = true;
-  ch_flg_power = true;
-}
+#if (OPTION == 1)
 
 void options(){
   if(!firstStartFlag){
@@ -1553,11 +1573,15 @@ bool cursor_get_pos(){
       if(enc.isHolded()){
         switch (cursor_pos){
           case 102:
-            alarm_OFF();
+            #if (ALARM == 1)
+              alarm_OFF();
+            #endif
             change_flag = true;
             break;
           case 103:
-            alarm_RST();
+            #if (ALARM == 1)
+              alarm_RST();
+            #endif
             change_flag = true;
             break;
           case 110:

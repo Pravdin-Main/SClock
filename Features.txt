@@ -2,12 +2,12 @@
 
 1 Low power indication
 2 Power safe
-3 Add dysplay mode "Option" --- paused
+3 Add dysplay mode "Option" --- in progress
 4 New algorithm without "blinking" --- DONE
 5 Add "Night and Bright" mode
 6 Cut off the bootloader - it's can free 2 KB
 7 Add display blinking
-8 Add module type --- in progress
+8 Add module type --- DONE
 -----------------------------------------
 
 \\LIST OF MODULS

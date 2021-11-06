@@ -19,7 +19,6 @@
 #define EEPROM_KEY_ADDR 0
 #define EEPROM_KEY 150
 #define DEBUG 0             // вывод на дисплей лог инициализации датчиков при запуске. Для дисплея 1602 не работает! Но дублируется через порт!
-void debug_start();
 #define RESET_CLOCK 1       // сброс часов на время загрузки прошивки (для модуля с несъёмной батарейкой). Не забудь поставить 0 и прошить ещё раз!
 
 // Общие настройки
@@ -84,20 +83,12 @@ void drawDig(uint8_t dig, uint8_t x, uint8_t y);
 void drawdots(uint8_t x, uint8_t y, bool state);
 void drawClock(uint8_t hours, uint8_t minutes, uint8_t x, uint8_t y);
 void drawData();
-void drawPlot(uint8_t pos, uint8_t row, uint8_t width, uint8_t height, int min_val, int max_val, int *plot_array, uint8_t label);
 void loadClock();
-void loadPlot();
-void redrawPlot();
 
 void setLED(uint8_t color);
 void checkBrightness();
 
 void modesTick();
-
-void init_sens();
-void readSensors();
-void drawSensors();
-void plotSensorsTick();
 
 void clockTick();
 void get_time();
@@ -187,6 +178,8 @@ static const char *dayNames[]  = {
   };
   void alarm_OFF();
   void alarm_RST();
+#else
+  #include <EEPROM.h>
 #endif
 
 //--------------- Options display -----------------
@@ -197,16 +190,6 @@ static const char *dayNames[]  = {
   #define RGB_BRS_DAY_ADDR 16
   #define RGB_BRS_NIGHT_ADDR 17
   #define VOLUME_ADDR 18
-
-  // пределы отображения для графиков
-  #define TEMP_MIN 15         // Минимальны уровень отображения графика температуры
-  #define TEMP_MAX 35         // Максимальный уровень отображения графика температуры
-  #define HUM_MIN 0           // Минимальный уровень отображения графика влажности
-  #define HUM_MAX 100         // Максимальный уровень отображения графика влажности
-  #define PRESS_MIN -100      // Минимальный уровень отображения графика давления
-  #define PRESS_MAX 100       // Максимальный уровень отображения графика давления
-  #define CO2_MIN 300         // Минимальный уровень отображения графика СО2
-  #define CO2_MAX 2000        // Максимальный уровень отображения графика СО2
 
   typedef struct option{
     uint8_t disp_pos;
@@ -238,6 +221,27 @@ static const char *dayNames[]  = {
 
 #if (DEBUG == 1)
   void go_debug();
+  void debug_start();
+#endif
+
+#if (SENSORS == 1)
+// пределы отображения для графиков
+  #define TEMP_MIN 15         // Минимальны уровень отображения графика температуры
+  #define TEMP_MAX 35         // Максимальный уровень отображения графика температуры
+  #define HUM_MIN 0           // Минимальный уровень отображения графика влажности
+  #define HUM_MAX 100         // Максимальный уровень отображения графика влажности
+  #define PRESS_MIN -100      // Минимальный уровень отображения графика давления
+  #define PRESS_MAX 100       // Максимальный уровень отображения графика давления
+  #define CO2_MIN 300         // Минимальный уровень отображения графика СО2
+  #define CO2_MAX 2000        // Максимальный уровень отображения графика СО2
+
+  void drawPlot(uint8_t pos, uint8_t row, uint8_t width, uint8_t height, int min_val, int max_val, int *plot_array, uint8_t label);
+  void loadPlot();
+  void redrawPlot();
+  void init_sens();
+  void readSensors();
+  void drawSensors();
+  void plotSensorsTick();
 #endif
 
 #endif

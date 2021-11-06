@@ -79,6 +79,10 @@ void setup() {
 
 
   reset_clock();
+  
+  #if (SENSORS == 1)
+    init_sens();
+  #endif
 }
 
 //----------------------LOOP--------------------------
