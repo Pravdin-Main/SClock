@@ -106,7 +106,6 @@ void drawFlags();
 void EEPROM_init();
 void power_control();
 void reload_ch_flg();
-void reset_clock();
 
 #if (WEEK_LANG == 0)
 static const char *dayNames[]  = {

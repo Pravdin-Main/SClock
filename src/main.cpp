@@ -77,9 +77,6 @@ void setup() {
   draw_main_disp(); // Взять текущее время и показания с датчиков и вывести на экран
   // Serial.println("Sensors inition is DONE");
 
-
-  reset_clock();
-  
   #if (SENSORS == 1)
     init_sens();
   #endif
