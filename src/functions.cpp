@@ -190,6 +190,11 @@ uint8_t Mode(uint8_t x){
       mode = x;
       return mode;
     }
+      else if(x == 100)
+        {
+          Mode(100);
+          return mode;
+        }
   }
   return 0;
 }
@@ -455,9 +460,9 @@ void modesTick() {
     mode++;
 
 #if (SENS_CO2 == 1)
-    if (mode > 8) mode = 0;
+    if (mode > 8) Mode(100);
 #else
-    if (mode > 6) mode = 0;
+    if (mode > 6) Mode(100);
 #endif
     changeFlag = true;
     backToMain.start();
@@ -480,8 +485,8 @@ void modesTick() {
   }
     else{
       if (button.isHolded() || backToMain.isReady()) {
-      mode = 0;
-      changeFlag = true;
+        Mode(100);
+        changeFlag = true;
       }
     }
 
@@ -1155,7 +1160,7 @@ void alarmTuning(){
   }
 
   if(backToMain.isReady() || button.isHolded()){
-    mode = 0;
+    Mode(100);
     firstStartFlag = false;
     draw_main_disp();
     backToMain.stop();
@@ -1433,7 +1438,7 @@ void options(){
   }
 
   if((cursor_pos < 100 && button.isHolded()) || backToMain.isReady()){
-    mode = 0;
+    Mode(100);
     firstStartFlag = false;
     change_flag = false;
     draw_main_disp();
