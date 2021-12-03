@@ -4,7 +4,7 @@
 2 Power safe
 3 Add dysplay mode "Option" --- in progress
 4 New algorithm without "blinking" --- DONE
-5 Add "Night and Bright" mode
+5 Add "Night and Bright" mode --- in progress
 6 Cut off the bootloader - it's can free 2 KB
 7 Add display blinking
 8 Add module type --- DONE

@@ -18,10 +18,13 @@
 #endif
 
 #if (SENSORS == 1)
-  #define SENS_TIME 30000     // время обновления показаний сенсоров на экране, миллисекунд
+  #define SENS_TIME 10000     // время обновления показаний сенсоров на экране, миллисекунд
   GTimer_ms sensorsTimer(SENS_TIME);            //Check sensor timer 30 sec
   GTimer_ms drawSensorsTimer(SENS_TIME);        //Drawing sensors timer 30 sec
+  
+  #if(GRAPH == 1)
   GTimer_ms plotTimer(240000);                  //Drawing plot any 4 min
+  #endif
 #endif
 
 GTimer_ms clockTimer(500);                    //Get real time every 0.5 sec

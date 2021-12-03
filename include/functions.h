@@ -8,11 +8,12 @@
 #define CLOCK 1       //1 - clock type 1; 2 - clock type 2; 3 - clock type 3; 4 - clock type 4
 #define ALARM 1       //0 - alarm module OFF; 1 - alarm module ON
 #define OPTION 1      //0 - options OFF; 1 - options ON
-#define SENSORS 1     //0 - sensors OFF; 1 - sensors - ON
+#define SENSORS 1     //0 - sensors OFF; 1 - sensors ON
 #define SENS_CO2 1    //0 - CO2 sensor OFF; 1 - CO2 sensor ON
 #define SENS_TEMP 1   //0 - temperature sensor OFF; 1 - remperature sensor ON
 #define SENS_HUM 1    //0 - hummadity sensor OFF; 1 - hummadity sensor ON
 #define SENS_PRESS 1  //0 - pressure sensor OFF; 1 - pressure sensor ON
+#define GRAPH 0       //0 - graphics displaying OFF; 1 - graphics displaying ON
 
 //---------------------------------------------------------
 
@@ -25,9 +26,10 @@
 #define DISP_MODE 1         // в правом верхнем углу отображать: 0 - год, 1 - день недели, 2 - секунды
 #define DISPLAY_TYPE 1      // тип дисплея: 1 - 2004 (большой), 0 - 1602 (маленький)
 #define DISPLAY_ADDR 0x27   // адрес платы дисплея: 0x27 или 0x3f. Если дисплей не работает - смени адрес! На самом дисплее адрес не указан
+#define CURSOR 62           // Cursor's symbol
+#define DELAY 1500          // Delay of displaying "done" message
 
 #define WEEK_LANG 0         // язык дня недели: 0 - английский, 1 - русский (транслит)
-#define PRESSURE 0          // 0 - график давления, 1 - график прогноза дождя (вместо давления). Не забудь поправить пределы гроафика
 #define LED_MODE 0          // тип RGB светодиода: 0 - главный катод, 1 - главный анод
 #define BLUE_YELLOW 0       // жёлтый цвет вместо синего (1 да, 0 нет) но из за особенностей подключения жёлтый не такой яркий
 
@@ -49,17 +51,21 @@
 
 // Управление яркостью
 #define BRIGHT_CONTROL 1      // 0/1 - запретить/разрешить управление яркостью (при отключении яркость всегда будет макс.)
-#define BRIGHT_THRESHOLD 150  // величина сигнала, ниже которой яркость переключится на минимум (0-1023)
+#define BRIGHT_THRESHOLD 150  // величина сигнала, ниже которой яркость переключится на ночной режим (0-1023)
 #define LED_BRIGHT_MAX 255    // макс яркость светодиода СО2 (0 - 255)
 #define LED_BRIGHT_MIN 10     // мин яркость светодиода СО2 (0 - 255)
 #define LCD_BRIGHT_MAX 255    // макс яркость подсветки дисплея (0 - 255)
 #define LCD_BRIGHT_MIN 10     // мин яркость подсветки дисплея (0 - 255)
+#define LCD_BRIGHT_STEP 10    // шаг изменения подсветки
 #define OPTION_DT 255         // Значения по умолчанию
 #define DIS_BRS_DAY_DT 80     // Яркость дисплея днем по умолчанию
 #define DIS_BRS_NIGHT_DT 20   // Яркость дисплея ночью по умолчанию
 #define RGB_BRS_DAY_DT 80     // Яркость светодиода днем по умолчанию
 #define RGB_BRS_NIGHT_DT 20   // Яркость светодиода ночью по умолчанию
 #define VOLUME_DT 50          // Уровень громкости динамика
+#define ZOOM_LED 3000         // Время максимальной яркости стветодиода при нажатии на кнопку
+#define CO2_GREEN_THRESHOLD 800   // Нижний порог допустимого уровня содержания СО2
+#define CO2_YELLOW_THRESHOLD 1200 // Верхний порог допустимого уровня содержания СО2
 
 #include <LiquidCrystal_I2C.h>
 void display_init();
@@ -80,25 +86,24 @@ void display_init();
 #endif
 
 void drawDig(uint8_t dig, uint8_t x, uint8_t y);
-void drawdots(uint8_t x, uint8_t y, bool state);
+void drawDots(uint8_t x, uint8_t y, bool state);
 void drawClock(uint8_t hours, uint8_t minutes, uint8_t x, uint8_t y);
 void drawData();
 void loadClock();
 
 void setLED(uint8_t color);
-void checkBrightness();
-
-void modesTick();
+void brightnessRef();
+void brightnessControl();
 
 void clockTick();
 void get_time();
 
 void draw_main_disp();
 
+void checkInput();
 bool Enc_IsClick();
 bool Enc_IsDouble();
 bool Enc_IsHolded();
-void Enc_Tick();
 void Enc_Reset();
 
 uint8_t Mode(uint8_t x);
@@ -106,6 +111,7 @@ void drawFlags();
 void EEPROM_init();
 void power_control();
 void reload_ch_flg();
+void space_prt(uint8_t q);
 
 #if (WEEK_LANG == 0)
 static const char *dayNames[]  = {
@@ -125,7 +131,7 @@ static const char *optNames[] = {
   "Disp brs night",
   "LED brs day",
   "LED brs night",
-  "Display mode",
+  "Disp blink",
   "Volume",
   "Debug start",
   "Up"
@@ -208,14 +214,15 @@ static const char *dayNames[]  = {
   void options();
   void cursor();
   bool cursor_get_pos();
-  void opt_upd();
+  void opt_save();
   void opt_change(bool dir);
-  void opt_eeprom_upd();
+  void opt_eeprom_save();
   void opt_eeprom_dwl();
   void processing();
   void opt_up();
   void opt_prt(struct print);
   uint8_t opt_fnd(uint8_t pos);
+  void cursor_prt();
 #endif
 
 #if (DEBUG == 1)
@@ -234,13 +241,17 @@ static const char *dayNames[]  = {
   #define CO2_MIN 300         // Минимальный уровень отображения графика СО2
   #define CO2_MAX 2000        // Максимальный уровень отображения графика СО2
 
-  void drawPlot(uint8_t pos, uint8_t row, uint8_t width, uint8_t height, int min_val, int max_val, int *plot_array, uint8_t label);
-  void loadPlot();
-  void redrawPlot();
+  #if(GRAPH == 1)
+    void modesTick();
+    void drawPlot(uint8_t pos, uint8_t row, uint8_t width, uint8_t height, int min_val, int max_val, int *plot_array, uint8_t label);
+    void loadPlot();
+    void redrawPlot();
+    void plotSensorsTick();
+  #endif
+
   void init_sens();
   void readSensors();
   void drawSensors();
-  void plotSensorsTick();
 #endif
 
 #endif

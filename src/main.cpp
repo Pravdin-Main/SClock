@@ -89,14 +89,13 @@ void loop() {
     power_control();
   }
 
-  Enc_Tick();
-
   if (brightTimer.isReady() ) {
     checkBrightness();          // яркость
     // Serial.println("Check brightness is DONE");
   }
+
   #if (SENSORS == 1)
-    if (sensorsTimer.isReady() ) {
+    if (sensorsTimer.isReady()) {
       readSensors();             // читаем показания датчиков с периодом SENS_TIME
       // Serial.println("Check sensors is DONE");
   }
@@ -124,13 +123,21 @@ void loop() {
  
   #if (DISPLAY_TYPE == 1)
     if (clockTimer.isReady()) clockTick();        // два раза в секунду пересчитываем время и мигаем точками
-    #if (SENSORS == 1)
+
+    #if (SENSORS == 1 && GRAPH == 1)
       plotSensorsTick();
     #endif   
+
+    #if (GRAPH == 1)
     if(Mode(0) != 9 && Mode(0) != 10){                         // тут внутри несколько таймеров для пересчёта графиков (за час, за день и прогноз)
       modesTick();
-      // Enc_Reset();                                  // тут ловим нажатия на кнопку и переключаем режимы
     }
+    #else
+      if(Mode(0) == 0){
+        brightnessControl();
+      }
+    #endif
+
     if (Mode(0) == 0) {                                  // в режиме "главного экрана"
       #if (SENSORS == 1)
         if (drawSensorsTimer.isReady()) {
@@ -157,7 +164,7 @@ void loop() {
       #endif
     }
       else {  
-        #if (SENSORS == 1)                                        // в любом из графиков
+        #if (SENSORS == 1 && GRAPH == 1)                                        // в любом из графиков
           if (plotTimer.isReady()) redrawPlot();          // перерисовываем график
         #endif
       }

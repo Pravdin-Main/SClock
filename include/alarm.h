@@ -17,6 +17,7 @@ class alarm {
     bool checkAlarm(uint8_t hour, uint8_t minute);
     uint8_t wakeUP_Sound();
     void stop();
+    void rst();
     bool isRunning();
     void getEEPROM(uint8_t h_addr, uint8_t m_addr, uint8_t snd_addr, uint8_t st_addr);
     void putEEPROM(uint8_t h_addr, uint8_t m_addr, uint8_t snd_addr, uint8_t st_addr);

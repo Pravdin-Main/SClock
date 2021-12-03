@@ -53,6 +53,13 @@ void alarm::stop(){
   state = false;
 }
 
+void alarm::rst(){
+  wakeMinute = 0;
+  wakeHour = 0;
+  wakeSound = 0;
+  wakeStatus = false;
+}
+
 bool alarm::isRunning(){
   return state;
 }

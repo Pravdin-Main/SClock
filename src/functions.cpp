@@ -1,22 +1,12 @@
 #include "functions.h"
 
-static int8_t hrs;
-static int8_t mins;
-static int8_t secs;
 static uint8_t set_param;
 static uint8_t mode = 0;
 static bool change_flag;
-static const char *labels[]  = {
-  "t hr",
-  "t day",
-  "h hr",
-  "h day",
-  "p hr",
-  "p day",
-  "c hr",
-  "c day"
-};
 
+static int8_t hrs;
+static int8_t mins;
+static int8_t secs;
 static bool ch_flg_hr1 = true;
 static bool ch_flg_hr2 = true;
 static bool ch_flg_min1 = true;
@@ -24,65 +14,77 @@ static bool ch_flg_min2 = true;
 static bool ch_flg_day = true;
 static bool ch_flg_month = true;
 static bool ch_flg_week = true;
-
-#if (SENSORS == 1)
-  static bool ch_flg_temp = true;
-  static bool ch_flg_hum = true;
-  static bool ch_flg_co2 = true;
-  static bool ch_flg_press = true;
-#endif
+RTC_DS3231 rtc;
+DateTime now;
 
 #if (ALARM == 1)
   static bool ch_flg_alarm = true;
+  bool draw_param;
 #endif
 
 static bool ch_flg_power = true;
 static bool low_power;
 bool dotFlag;
 bool firstStartFlag = false;
-bool draw_param;
 
 #if (OPTION == 1)
   option N_B, A_OFF, A_RST, D_brs_day, D_brs_night, LED_brs_day, LED_brs_night, Display_mode, vol, debug, up;
   static bool opt_status;   // 0 - N_B, 1 - A_OFF, 2 - A_RST, 3 - debug; 4 - up; 5 - display_mode
   static uint8_t cursor_pos = 1;
-  // uint8_t Dis_brs_day, Dis_brs_night, RGB_brs_day, RGB_brs_night, volume, disp_mode_param;
   print opt,lst_opt;
+  const static String error_msg = "error";
 #endif
 
 #if (SENSORS == 1)
-  float dispTemp;
-  uint8_t dispHum;
-  int dispPres;
-  int dispCO2;
-  int tempHour[15], tempDay[15];
-  int humHour[15], humDay[15];
-  int pressHour[15], pressDay[15];
-  int co2Hour[15], co2Day[15];
-  uint32_t pressure_array[6];
-  uint32_t sumX, sumY, sumX2, sumXY;
-  float a, b;
-  uint8_t time_array[6];
+  #if (SENS_TEMP == 1)
+    float dispTemp;
+    static bool ch_flg_temp = true;
+  #endif
+  #if (SENS_HUM == 1)
+    uint8_t dispHum;
+    static bool ch_flg_hum = true;
+  #endif
+  #if (SENS_PRESS == 1)
+    uint16_t dispPres;
+    static bool ch_flg_press = true;
+  #endif
+  #if (SENS_CO2 == 1)
+    uint16_t dispCO2;
+    static bool ch_flg_co2 = true;
+    MHZ19_uart mhz19;
+  #endif
+  // float a, b;
 
-  // символы
-  // график
-  uint8_t row8[8] = {0b11111,  0b11111,  0b11111,  0b11111,  0b11111,  0b11111,  0b11111,  0b11111};
-  uint8_t row7[8] = {0b00000,  0b11111,  0b11111,  0b11111,  0b11111,  0b11111,  0b11111,  0b11111};
-  uint8_t row6[8] = {0b00000,  0b00000,  0b11111,  0b11111,  0b11111,  0b11111,  0b11111,  0b11111};
-  uint8_t row5[8] = {0b00000,  0b00000,  0b00000,  0b11111,  0b11111,  0b11111,  0b11111,  0b11111};
-  uint8_t row4[8] = {0b00000,  0b00000,  0b00000,  0b00000,  0b11111,  0b11111,  0b11111,  0b11111};
-  uint8_t row3[8] = {0b00000,  0b00000,  0b00000,  0b00000,  0b00000,  0b11111,  0b11111,  0b11111};
-  uint8_t row2[8] = {0b00000,  0b00000,  0b00000,  0b00000,  0b00000,  0b00000,  0b11111,  0b11111};
-  uint8_t row1[8] = {0b00000,  0b00000,  0b00000,  0b00000,  0b00000,  0b00000,  0b00000,  0b11111};
+  #if (GRAPH == 1)
+    int tempHour[15], tempDay[15];
+    int humHour[15], humDay[15];
+    int pressHour[15], pressDay[15];
+    int co2Hour[15], co2Day[15];
+    static const char *labels[]  = {
+      "t hr",
+      "t day",
+      "h hr",
+      "h day",
+      "p hr",
+      "p day",
+      "c hr",
+      "c day"
+    };
+    uint8_t row8[8] = {0b11111,  0b11111,  0b11111,  0b11111,  0b11111,  0b11111,  0b11111,  0b11111};
+    uint8_t row7[8] = {0b00000,  0b11111,  0b11111,  0b11111,  0b11111,  0b11111,  0b11111,  0b11111};
+    uint8_t row6[8] = {0b00000,  0b00000,  0b11111,  0b11111,  0b11111,  0b11111,  0b11111,  0b11111};
+    uint8_t row5[8] = {0b00000,  0b00000,  0b00000,  0b11111,  0b11111,  0b11111,  0b11111,  0b11111};
+    uint8_t row4[8] = {0b00000,  0b00000,  0b00000,  0b00000,  0b11111,  0b11111,  0b11111,  0b11111};
+    uint8_t row3[8] = {0b00000,  0b00000,  0b00000,  0b00000,  0b00000,  0b11111,  0b11111,  0b11111};
+    uint8_t row2[8] = {0b00000,  0b00000,  0b00000,  0b00000,  0b00000,  0b00000,  0b11111,  0b11111};
+    uint8_t row1[8] = {0b00000,  0b00000,  0b00000,  0b00000,  0b00000,  0b00000,  0b00000,  0b11111};
+  
+    GTimer_ms hourPlotTimer((long)4 * 60 * 1000);         // 4 минуты
+    GTimer_ms dayPlotTimer((long)1.6 * 60 * 60 * 1000);   // 1.6 часа
+  #endif
 #endif
 
-#if (LED_MODE == 0)
-  uint8_t LED_ON = (LED_BRIGHT_MAX);
-  uint8_t LED_OFF = (LED_BRIGHT_MIN);
-#else
-  uint8_t LED_ON = (255 - LED_BRIGHT_MAX);
-  uint8_t LED_OFF = (255 - LED_BRIGHT_MIN);
-#endif
+bool brsHandControl = false;
 
 #if (DISPLAY_TYPE == 1)
 LiquidCrystal_I2C lcd(DISPLAY_ADDR, 20, 4);
@@ -94,12 +96,10 @@ Encoder enc(CLK, DT, SW, TYPE2);
 BME280_I2C bme(0x76);
 GButton button(BTN_PIN, LOW_PULL, NORM_OPEN);
 
-GTimer_ms hourPlotTimer((long)4 * 60 * 1000);         // 4 минуты
-GTimer_ms dayPlotTimer((long)1.6 * 60 * 60 * 1000);   // 1.6 часа
-GTimer_ms predictTimer((long)10 * 60 * 1000);         // 10 минут
 GTimer_ms drawDown_param(1500);
 GTimer_ms drawUp_param(400);
 GTimer_ms backToMain(20000);
+GTimer_ms ZoomLight(ZOOM_LED);
 
 // цифры
 uint8_t LT[8] = {0b00111,  0b01111,  0b11111,  0b11111,  0b11111,  0b11111,  0b11111,  0b11111};
@@ -110,13 +110,6 @@ uint8_t LB[8] = {0b00000,  0b00000,  0b00000,  0b00000,  0b00000,  0b11111,  0b1
 uint8_t LR[8] = {0b11111,  0b11111,  0b11111,  0b11111,  0b11111,  0b11111,  0b11110,  0b11100};
 uint8_t UMB[8] = {0b11111,  0b11111,  0b11111,  0b00000,  0b00000,  0b00000,  0b11111,  0b11111};
 uint8_t LMB[8] = {0b11111,  0b00000,  0b00000,  0b00000,  0b00000,  0b11111,  0b11111,  0b11111};
-
-#if (SENS_CO2 == 1)
-  MHZ19_uart mhz19;
-#endif
-
-RTC_DS3231 rtc;
-DateTime now;
 
 #if (ALARM == 1)
   uint8_t set_alarm;
@@ -163,10 +156,6 @@ void draw_main_disp(){
   #endif
 }
 
-void Enc_Tick(){
-  enc.tick();
-}
-
 bool Enc_IsClick(){
   return enc.isSingle();
 }
@@ -192,7 +181,7 @@ uint8_t Mode(uint8_t x){
     }
       else if(x == 100)
         {
-          Mode(100);
+          mode = 0;
           return mode;
         }
   }
@@ -306,7 +295,7 @@ void drawDig(uint8_t dig, uint8_t x, uint8_t y) {
   }
 }
 
-void drawdots(uint8_t x, uint8_t y, bool state) {
+void drawDots(uint8_t x, uint8_t y, bool state) {
   byte code;
   if (state) code = 165;
   else code = 32;
@@ -319,9 +308,9 @@ void drawdots(uint8_t x, uint8_t y, bool state) {
 void drawClock(uint8_t hours, uint8_t minutes, uint8_t x, uint8_t y) {
   if(ch_flg_hr1){
     lcd.setCursor(x, y);
-    lcd.print("   ");
+    space_prt(3);
     lcd.setCursor(x, y + 1);
-    lcd.print("   ");
+    space_prt(3);
     if (hours / 10 == 0) drawDig(10, x, y);
       else drawDig(hours / 10, x, y);
     ch_flg_hr1 = false;
@@ -329,27 +318,27 @@ void drawClock(uint8_t hours, uint8_t minutes, uint8_t x, uint8_t y) {
   
   if(ch_flg_hr2){
     lcd.setCursor(x + 4, y);
-    lcd.print("   ");
+    space_prt(3);
     lcd.setCursor(x + 4, y + 1);
-    lcd.print("   ");
+    space_prt(3);
     drawDig(hours % 10, x + 4, y);
     ch_flg_hr2 = false;
   }
 
   if(ch_flg_min1){
     lcd.setCursor(x + 8, y);
-    lcd.print("   ");
+    space_prt(3);
     lcd.setCursor(x + 8, y + 1);
-    lcd.print("   ");
+    space_prt(3);
     drawDig(minutes / 10, x + 8, y);
     ch_flg_min1 = false;
   }
 
   if(ch_flg_min2){
     lcd.setCursor(x + 12, y);
-    lcd.print("   ");
+    space_prt(3);
     lcd.setCursor(x + 12, y + 1);
-    lcd.print("   ");
+    space_prt(3);
     drawDig(minutes % 10, x + 12, y);
     ch_flg_min2 = false;
   }
@@ -358,7 +347,7 @@ void drawClock(uint8_t hours, uint8_t minutes, uint8_t x, uint8_t y) {
 void drawData() {
   if(ch_flg_day){
     lcd.setCursor(15, 0);
-    lcd.print("   ");
+    space_prt(3);
     lcd.setCursor(15, 0);
     if (now.day() < 10) lcd.print(0);
     lcd.print(now.day());
@@ -368,7 +357,7 @@ void drawData() {
   
   if(ch_flg_month){
     lcd.setCursor(18, 0);
-    lcd.print("  ");
+    space_prt(2);
     lcd.setCursor(18, 0);
     if (now.month() < 10) lcd.print(0);
     lcd.print(now.month());
@@ -378,7 +367,7 @@ void drawData() {
 
   if(ch_flg_week){
     lcd.setCursor(16, 1);
-    lcd.print("    ");
+    space_prt(4);
     lcd.setCursor(16, 1);
     if (DISP_MODE == 0) {
       lcd.print(now.year());
@@ -403,67 +392,250 @@ void loadClock() {
 }
 
 void setLED(uint8_t color) {
-  // сначала всё выключаем
-  if (!LED_MODE) {
-    analogWrite(LED_R, 0);
-    analogWrite(LED_G, 0);
-    analogWrite(LED_B, 0);
-  } else {
-    analogWrite(LED_R, 255);
-    analogWrite(LED_G, 255);
-    analogWrite(LED_B, 255);
-  }
-  switch (color) {    // 0 выкл, 1 красный, 2 зелёный, 3 синий (или жёлтый)
-    case 0:
-      break;
-    case 1: analogWrite(LED_R, LED_ON);
-      break;
-    case 2: analogWrite(LED_G, LED_ON);
-      break;
-    case 3:
-      if (!BLUE_YELLOW) analogWrite(LED_B, LED_ON);
-      else {
-        analogWrite(LED_R, LED_ON - 50);    // чутка уменьшаем красный
-        analogWrite(LED_G, LED_ON);
+  if(analogRead(PHOTO) > BRIGHT_THRESHOLD && dispCO2 >= CO2_YELLOW_THRESHOLD){}
+    else{
+      switch (color) {    // 0 выкл, 1 красный, 2 зелёный, 3 синий (или жёлтый)
+        case 0:
+          if (!LED_MODE) {
+            analogWrite(LED_R, 0);
+            analogWrite(LED_G, 0);
+            analogWrite(LED_B, 0);
+          }
+            else {
+              analogWrite(LED_R, 255);
+              analogWrite(LED_G, 255);
+              analogWrite(LED_B, 255);
+            }
+          break;
+        case 1: 
+          if(analogRead(PHOTO) < BRIGHT_THRESHOLD) analogWrite(LED_R, LED_brs_night.param);
+            else{ analogWrite(LED_R, LED_brs_day.param); }
+          break;
+        case 2: 
+          if(analogRead(PHOTO) < BRIGHT_THRESHOLD) analogWrite(LED_G, LED_brs_night.param);
+            else { analogWrite(LED_G, LED_brs_day.param); }
+          break;
+        case 3:
+          if(analogRead(PHOTO) < BRIGHT_THRESHOLD){ 
+            if (!BLUE_YELLOW) analogWrite(LED_B, LED_brs_night.param);
+              else {
+                if(LED_brs_night.param <= 50) analogWrite(LED_R, 0);
+                  else {  analogWrite(LED_R, LED_brs_night.param - 50); }    // приглушаем красный
+                analogWrite(LED_G, LED_brs_night.param);
+              }
+          }
+            else{
+              if (!BLUE_YELLOW) analogWrite(LED_B, LED_brs_day.param);
+                else {
+                  if(LED_brs_day.param <= 50) analogWrite(LED_R, 0);
+                    else {  analogWrite(LED_R, LED_brs_day.param - 50); }    // приглушаем красный
+                  analogWrite(LED_G, LED_brs_day.param);
+                }
+            }
+          break;
+        default:
+          break;
       }
-      break;
+    }
+}
+
+void brightnessControl(){
+  checkInput();
+  brsHandControl = true;
+  if(enc.isRight()){
+    if(analogRead(PHOTO) < BRIGHT_THRESHOLD){
+      D_brs_night.param += LCD_BRIGHT_STEP;
+      D_brs_night.param = constrain(D_brs_night.param, 0, 255);
+    }
+      else{
+        D_brs_day.param += LCD_BRIGHT_STEP;
+        D_brs_day.param = constrain(D_brs_day.param, 0, 255);
+      }
+    brightnessRef();
+  }
+
+  if(enc.isLeft()){
+    if(analogRead(PHOTO) < BRIGHT_THRESHOLD){
+      D_brs_night.param -= LCD_BRIGHT_STEP;
+      D_brs_night.param = constrain(D_brs_night.param, 0, 255);
+    }
+      else{
+        D_brs_day.param -= LCD_BRIGHT_STEP;
+        D_brs_day.param = constrain(D_brs_day.param, 0, 255);
+      }
+    brightnessRef();
+  }
+  
+  static uint8_t LCD_brs_night_cache;
+  static uint8_t LCD_brs_day_cache;
+
+  if(button.isClick()){
+    ZoomLight.reset();
+    ZoomLight.start();
+    if(analogRead(PHOTO) < BRIGHT_THRESHOLD){
+      LCD_brs_night_cache = D_brs_night.param;
+      D_brs_night.param = LCD_BRIGHT_MAX;
+    }
+      else{
+        LCD_brs_day_cache = D_brs_day.param;
+        D_brs_day.param = LCD_BRIGHT_MAX;
+      }
+    brightnessRef();
+  }
+
+  if(ZoomLight.isReady()){
+    ZoomLight.stop();
+    D_brs_night.param = LCD_brs_night_cache;
+    D_brs_day.param = LCD_brs_day_cache;
+    brightnessRef();
   }
 }
 
-void checkBrightness() {
+void brightnessRef() {
   if (analogRead(PHOTO) < BRIGHT_THRESHOLD) {   // если темно
-    analogWrite(BACKLIGHT, LCD_BRIGHT_MIN);
-#if (LED_MODE == 0)
-    LED_ON = (LED_BRIGHT_MIN);
-#else
-    LED_ON = (255 - LED_BRIGHT_MIN);
-#endif
-  } else {                                      // если светло
-    analogWrite(BACKLIGHT, LCD_BRIGHT_MAX);
-#if (LED_MODE == 0)
-    LED_ON = (LED_BRIGHT_MAX);
-#else
-    LED_ON = (255 - LED_BRIGHT_MAX);
-#endif
+    analogWrite(BACKLIGHT, D_brs_night.param);
   }
-  #if (SENSORS == 1 && SENS_CO2 == 1)
-  if (dispCO2 < 800) setLED(2);
-  else if (dispCO2 < 1200) setLED(3);
-  else if (dispCO2 >= 1200) setLED(1);
+   else {                                      // если светло
+    analogWrite(BACKLIGHT, D_brs_day.param);
+   }
+    #if (SENSORS == 1 && SENS_CO2 == 1)
+      if (dispCO2 < CO2_GREEN_THRESHOLD) setLED(2);
+      else if (dispCO2 < CO2_YELLOW_THRESHOLD) setLED(3);
+      else if (dispCO2 >= CO2_YELLOW_THRESHOLD) setLED(1);
+    #endif
+}
+
+void checkInput(){
+  button.tick();
+  enc.tick();
+}
+
+//------------------------- SENSORS MODUL ---------------------------------
+#if (SENSORS == 1)
+void init_sens(){
+  #if (SENS_CO2 == 1)
+    mhz19.begin(MHZ_TX, MHZ_RX);
+    mhz19.setAutoCalibration(false);
+  #endif
+  rtc.begin();
+  bme.begin();
+  bme.setTempCal(-1);
+  if (RESET_CLOCK || rtc.lostPower()) rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
+  readSensors();
+  drawSensors();
+}
+
+void readSensors() {
+  bme.readSensor();
+
+  #if (SENS_PRESS == 1)
+    uint16_t dispPres_cache = (float)bme.getPressure_MB() * 0.750062;
+    if(dispPres_cache != dispPres){
+      dispPres = dispPres_cache;
+      ch_flg_press = true;
+    }
+  #endif
+
+  #if (SENS_TEMP == 1)
+    float dispTemp_cache = bme.getTemperature_C();
+    if(dispTemp_cache != dispTemp){
+      dispTemp = dispTemp_cache;
+      ch_flg_temp = true;
+    }
+  #endif
+
+  #if (SENS_HUM == 1)
+    uint8_t dispHum_cache = bme.getHumidity();
+    if(dispHum_cache != dispHum){
+      dispHum = dispHum_cache;
+      ch_flg_hum = true;
+    }
+  #endif
+
+  #if (SENS_CO2 == 1)
+    uint16_t dispCO2_cache = mhz19.getPPM();
+    if(dispCO2_cache != dispCO2){
+      dispCO2 = dispCO2_cache;
+      ch_flg_co2 = true;
+    }
+
+    if (dispCO2 < CO2_GREEN_THRESHOLD) setLED(2);
+    else if (dispCO2 < CO2_YELLOW_THRESHOLD) setLED(3);
+    else if (dispCO2 >= CO2_YELLOW_THRESHOLD) setLED(1);
   #endif
 }
 
+void drawSensors() {
+#if (DISPLAY_TYPE == 1)
+  // дисплей 2004
+  if(ch_flg_temp){
+    lcd.setCursor(0, 2);
+    space_prt(7);
+    lcd.setCursor(0, 2);
+    lcd.print(dispTemp, 1);
+    lcd.write(223);
+    ch_flg_temp = false;
+  }
+  
+  if(ch_flg_hum){
+    lcd.setCursor(7, 2);
+    space_prt(5);
+    lcd.setCursor(7, 2);
+    lcd.print(dispHum);
+    lcd.print("%");
+    ch_flg_hum = false;
+  }
+
+#if (SENS_CO2 == 1)
+  if(ch_flg_co2){
+    lcd.setCursor(12, 2);
+    space_prt(8);
+    lcd.setCursor(12, 2);
+    lcd.print(dispCO2);
+    lcd.print("ppm");
+    ch_flg_co2 = false;
+  }
+#endif
+
+  if(ch_flg_press){
+    lcd.setCursor(0, 3);
+    space_prt(8);
+    lcd.setCursor(0, 3);
+    lcd.print(dispPres);
+    lcd.print("mm");
+    ch_flg_press = false;
+  }
+
+#else
+  // дисплей 1602
+  lcd.setCursor(0, 0);
+  lcd.print(String(dispTemp, 1));
+  lcd.write(223);
+  lcd.setCursor(6, 0);
+  lcd.print(String(dispHum) + "% ");
+
+#if (SENS_CO2 == 1)
+  lcd.print(String(dispCO2) + "ppm");
+  if (dispCO2 < 1000) lcd.print(" ");
+#endif
+
+  lcd.setCursor(0, 1);
+  lcd.print(String(dispPres) + " mm");
+#endif
+}
+
+#if(GRAPH == 1)
 void modesTick() {
-  button.tick();
+  checkInput();
   bool changeFlag = false;
   if (button.isClick() || enc.isRight()) {
     mode++;
 
-#if (SENS_CO2 == 1)
-    if (mode > 8) Mode(100);
-#else
-    if (mode > 6) Mode(100);
-#endif
+    #if (SENS_CO2 == 1)
+      if (mode > 8) Mode(100);
+    #else
+      if (mode > 6) Mode(100);
+    #endif
     changeFlag = true;
     backToMain.start();
     backToMain.reset();
@@ -480,7 +652,7 @@ void modesTick() {
   
   if(mode == 0){
     if(button.isHolded()){
-      mode = 10;
+      Mode(10);
     }
   }
     else{
@@ -498,34 +670,17 @@ void modesTick() {
       drawClock(hrs, mins, 0, 0);
       if (DISPLAY_TYPE == 1) drawData();
       #if (SENSORS == 1)
-      drawSensors();
+        drawSensors();
       #endif
       drawFlags();
       backToMain.stop();
     }
     else if(mode > 0 && mode < 9) {
       lcd.clear();
-      #if (SENSORS == 1)
-        loadPlot();
-        redrawPlot();
-      #endif
+      loadPlot();
+      redrawPlot();
     }
   }
-}
-
-//------------------------- SENSORS MODUL ---------------------------------
-#if (SENSORS == 1)
-void init_sens(){
-  #if (SENS_CO2 == 1)
-    mhz19.begin(MHZ_TX, MHZ_RX);
-    mhz19.setAutoCalibration(false);
-  #endif
-  rtc.begin();
-  bme.begin();
-  bme.setTempCal(-1);
-  if (RESET_CLOCK || rtc.lostPower()) rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
-  readSensors();
-  drawSensors();
 }
 
 void loadPlot() {
@@ -604,112 +759,6 @@ void redrawPlot() {
   }
 }
 
-void readSensors() {
-  bme.readSensor();
-  #if (SENS_PRESS == 1)
-  uint32_t Pressure = bme.getPressure_MB();
-  for (byte i = 0; i < 6; i++) {   // счётчик от 0 до 5
-    pressure_array[i] = Pressure;  // забить весь массив текущим давлением
-    time_array[i] = i;             // забить массив времени числами 0 - 5
-  }
-  int dispPres_cache = (float)bme.getPressure_MB() * 0.750062;
-  if(dispPres_cache != dispPres){
-    dispPres = dispPres_cache;
-    ch_flg_press = true;
-  }
-  #endif
-
-  #if (SENS_TEMP == 1)
-  if(bme.getTemperature_C() != dispTemp){
-    dispTemp = bme.getTemperature_C();
-    ch_flg_temp = true;
-  }
-  #endif
-
-  #if (SENS_HUM == 1)
-  if(bme.getHumidity() != dispHum){
-    dispHum = bme.getHumidity();
-    ch_flg_hum = true;
-  }
-  #endif
-
-  #if (SENS_CO2 == 1)
-    int dispCO2_cache = mhz19.getPPM();
-    if(dispCO2_cache != dispCO2){
-      dispCO2 = dispCO2_cache;
-      ch_flg_co2 = true;
-    }
-
-    if (dispCO2 < 800) setLED(2);
-    else if (dispCO2 < 1200) setLED(3);
-    else if (dispCO2 >= 1200) setLED(1);
-  #endif
-}
-
-void drawSensors() {
-#if (DISPLAY_TYPE == 1)
-  // дисплей 2004
-  if(ch_flg_temp){
-    lcd.setCursor(0, 2);
-    lcd.print("       ");
-    lcd.setCursor(0, 2);
-    lcd.print(dispTemp, 1);
-    lcd.write(223);
-    ch_flg_temp = false;
-  }
-  
-  if(ch_flg_hum){
-    lcd.setCursor(7, 2);
-    lcd.print("     ");
-    lcd.setCursor(7, 2);
-    lcd.print(dispHum);
-    lcd.print("%");
-    ch_flg_hum = false;
-  }
-
-#if (SENS_CO2 == 1)
-  if(ch_flg_co2){
-    lcd.setCursor(12, 2);
-    lcd.print("        ");
-    lcd.setCursor(12, 2);
-    lcd.print(dispCO2);
-    lcd.print("ppm");
-    ch_flg_co2 = false;
-  }
-#endif
-
-  if(ch_flg_press){
-    lcd.setCursor(0, 3);
-    lcd.print("        ");
-    lcd.setCursor(0, 3);
-    lcd.print(dispPres);
-    lcd.print("mm");
-    ch_flg_press = false;
-  }
-  
-  // lcd.print(F("       "));
-  // lcd.setCursor(13, 3);
-  // lcd.print(dispRain); lcd.print("%");
-
-#else
-  // дисплей 1602
-  lcd.setCursor(0, 0);
-  lcd.print(String(dispTemp, 1));
-  lcd.write(223);
-  lcd.setCursor(6, 0);
-  lcd.print(String(dispHum) + "% ");
-
-#if (SENS_CO2 == 1)
-  lcd.print(String(dispCO2) + "ppm");
-  if (dispCO2 < 1000) lcd.print(" ");
-#endif
-
-  lcd.setCursor(0, 1);
-  lcd.print(String(dispPres) + " mm");
-  // lcd.print(String(dispRain) + "% ");
-#endif
-}
-
 void plotSensorsTick() {
   // 4 минутный таймер
   if (hourPlotTimer.isReady()) {
@@ -722,9 +771,6 @@ void plotSensorsTick() {
     tempHour[14] = dispTemp;
     humHour[14] = dispHum;
     co2Hour[14] = dispCO2;
-
-  //   if (PRESSURE) pressHour[14] = dispRain;
-  //   else pressHour[14] = dispPres;
   }
 
   pressHour[14] = dispPres;
@@ -755,44 +801,13 @@ void plotSensorsTick() {
     pressDay[14] = averPress;
     co2Day[14] = averCO2;
   }
-
-  // 10 минутный таймер
-  if (predictTimer.isReady()) {
-    // тут делаем линейную аппроксимацию для предсказания погоды
-    long averPress = 0;
-    for (byte i = 0; i < 10; i++) {
-      bme.readSensor();
-      averPress += bme.getPressure_MB();
-      delay(1);
-    }
-    averPress /= 10;
-
-    for (byte i = 0; i < 5; i++) {                   // счётчик от 0 до 5 (да, до 5. Так как 4 меньше 5)
-      pressure_array[i] = pressure_array[i + 1];     // сдвинуть массив давлений КРОМЕ ПОСЛЕДНЕЙ ЯЧЕЙКИ на шаг назад
-    }
-    pressure_array[5] = averPress;                    // последний элемент массива теперь - новое давление
-    sumX = 0;
-    sumY = 0;
-    sumX2 = 0;
-    sumXY = 0;
-    for (int i = 0; i < 6; i++) {                    // для всех элементов массива
-      sumX += time_array[i];
-      sumY += (long)pressure_array[i];
-      sumX2 += time_array[i] * time_array[i];
-      sumXY += (long)time_array[i] * pressure_array[i];
-    }
-    // a = 0;
-    // a = (long)6 * sumXY;             // расчёт коэффициента наклона приямой
-    // a = a - (long)sumX * sumY;
-    // a = (float)a / (6 * sumX2 - sumX * sumX);
-    // delta = a * 6;      // расчёт изменения давления
-    // dispRain = map(delta, -250, 250, 100, -100);  // пересчитать в проценты
-    //Serial.println(String(pressure_array[5]) + " " + String(delta) + " " + String(dispRain));   // дебаг
-  }
 }
+
 #endif
 
-//----------------------- END OF SENSORS MODULE ------------------------------------
+#endif
+
+//----------------------- CLOCK MODULE ------------------------------------
 
 void clockTick() {
   dotFlag = !dotFlag;
@@ -834,43 +849,44 @@ void clockTick() {
     }
     if (DISP_MODE == 2 && mode == 0) {
       lcd.setCursor(16, 1);
-      if (secs < 10) lcd.print(" ");
+      if (secs < 10) space_prt(1);
       lcd.print(secs);
     }
   }
-  if (mode == 0) drawdots(7, 0, dotFlag);
-  #if (SENSORS == 1 && SENS_CO2 == 1)
-  if (dispCO2 >= 1200) {
-    if (dotFlag) setLED(1);
-    else setLED(0);
-  }
-  #endif
+  if (mode == 0) drawDots(7, 0, dotFlag);
+  // #if (SENSORS == 1 && SENS_CO2 == 1)
+  // if (dispCO2 >= CO2_YELLOW_THRESHOLD) {
+  //   if (dotFlag) setLED(1);
+  //   else setLED(0);
+  // }
+  // #endif
 }
 
 //---------------------ALARM--------------------------------------------------
 
 #if (ALARM == 1)
+
 void drawAlarmClock(uint8_t hours, uint8_t minutes, uint8_t x, uint8_t y, bool draw) {
 
   if(change_flag){
     switch(set_param) {
       case 1:
         lcd.setCursor(x, y);
-        lcd.print("       ");
+        space_prt(7);
         lcd.setCursor(x, y + 1);
-        lcd.print("       ");
+        space_prt(7);
         break;
       case 2:
         lcd.setCursor(x + 8, y);
-        lcd.print("       ");
+        space_prt(7);
         lcd.setCursor(x + 8, y + 1);
-        lcd.print("       ");
+        space_prt(7);
         break;
       case 3:
-        lcd.setCursor(15, 0); lcd.print("     ");
+        lcd.setCursor(15, 0); space_prt(5);
         break;
       case 4:
-        lcd.setCursor(15, 1); lcd.print("     ");
+        lcd.setCursor(15, 1); space_prt(5);
         break;
       default:
         break;
@@ -885,12 +901,12 @@ void drawAlarmClock(uint8_t hours, uint8_t minutes, uint8_t x, uint8_t y, bool d
   }
   else if(set_param == 1 && !draw){
     lcd.setCursor(x, y);
-    lcd.print("       ");
+    space_prt(7);
     lcd.setCursor(x, y + 1);
-    lcd.print("       ");
+    space_prt(7);
   }
 
-  drawdots(7, 0, true);
+  drawDots(7, 0, true);
   
   if(set_param == 2 && draw){
     drawDig(minutes / 10, 8, y);
@@ -898,23 +914,23 @@ void drawAlarmClock(uint8_t hours, uint8_t minutes, uint8_t x, uint8_t y, bool d
   }
   else if(set_param == 2 && !draw){
     lcd.setCursor(x + 8, y);
-    lcd.print("       ");
+    space_prt(7);
     lcd.setCursor(x + 8, y + 1);
-    lcd.print("       ");
+    space_prt(7);
   }
 
   if(set_param == 3 && draw){
     lcd.setCursor(15, 0); lcd.print("s-"); lcd.print(alarmTune.sound);
   }
   else if (set_param == 3 && !draw){
-    lcd.setCursor(15, 0); lcd.print("     ");
+    lcd.setCursor(15, 0); space_prt(5);
   }
 
   if(set_param == 4 && draw){
     lcd.setCursor(15, 1); alarmTune.status ? lcd.print("ON") : lcd.print("OFF");
   }
   else if(set_param == 4 && !draw){
-    lcd.setCursor(15, 1); lcd.print("     ");
+    lcd.setCursor(15, 1); space_prt(5);
   }
 
   switch(set_param){
@@ -998,17 +1014,17 @@ void drawAlarmClock(uint8_t hours, uint8_t minutes, uint8_t x, uint8_t y, bool d
   switch (set_alarm){
     case 1:
       lcd.setCursor(5, 2); lcd.print("<");
-      lcd.setCursor(12, 2); lcd.print(" ");
-      lcd.setCursor(19, 2); lcd.print(" ");
+      lcd.setCursor(12, 2); space_prt(1);
+      lcd.setCursor(19, 2); space_prt(1);
       break;
     case 2:
-      lcd.setCursor(5, 2); lcd.print(" ");
+      lcd.setCursor(5, 2); space_prt(1);
       lcd.setCursor(12, 2); lcd.print("<");
-      lcd.setCursor(19, 2); lcd.print(" ");
+      lcd.setCursor(19, 2); space_prt(1);
       break;
     case 3:
-      lcd.setCursor(5, 2); lcd.print(" ");
-      lcd.setCursor(12, 2); lcd.print(" ");
+      lcd.setCursor(5, 2); space_prt(1);
+      lcd.setCursor(12, 2); space_prt(1);
       lcd.setCursor(19, 2); lcd.print("<");
       break;
     default:
@@ -1164,6 +1180,7 @@ void alarmTuning(){
     firstStartFlag = false;
     draw_main_disp();
     backToMain.stop();
+    get_time();
   }
 }
 
@@ -1210,11 +1227,25 @@ void alarmStop(){
 }
 
 void alarm_OFF(){
-
+  alarm1.stop();
+  alarm2.stop();
+  alarm3.stop();
+  lcd.setCursor(14, 1); space_prt(4);
+  lcd.setCursor(14, 1); lcd.print("done");
+  delay(DELAY);
+  lcd.setCursor(14, 1); space_prt(4);
+  lcd.setCursor(14, 1); lcd.print("hold");
 }
 
 void alarm_RST(){
-
+  alarm1.rst();
+  alarm2.rst();
+  alarm3.rst();
+  lcd.setCursor(14, 2); space_prt(4);
+  lcd.setCursor(14, 2); lcd.print("done");
+  delay(DELAY);
+  lcd.setCursor(14, 2); space_prt(4);
+  lcd.setCursor(14, 2); lcd.print("hold");
 }
 #endif
 
@@ -1222,7 +1253,7 @@ void drawFlags(){
   #if (ALARM == 1)
   if(ch_flg_alarm){
     lcd.setCursor(8, 3);
-    lcd.print("          ");
+    space_prt(10);
     lcd.setCursor(8, 3);
     lcd.print("Alarm:");
     if(alarm1.get_wakeStatus() || alarm2.get_wakeStatus() || alarm3.get_wakeStatus()){
@@ -1235,12 +1266,12 @@ void drawFlags(){
 
   if(ch_flg_power){
     lcd.setCursor(18, 3);
-    lcd.print("  ");
+    space_prt(2);
     lcd.setCursor(18, 3);
     if(low_power){
       lcd.setCursor(19, 3); lcd.print("!");
     }
-      else { lcd.setCursor(19, 3); lcd.print(" "); }
+      else { lcd.setCursor(19, 3); space_prt(2); }
     ch_flg_power = false;
   }  
 }
@@ -1266,8 +1297,8 @@ void debug_start(){
             lcd.print(F("OK"));
             Serial.println(F("OK"));
         } else {
-            lcd.print(F("ERROR"));
-            Serial.println(F("ERROR"));
+            lcd.print(F(error_msg));
+            Serial.println(F(error_msg));
             status = false;
         }
     #endif
@@ -1281,8 +1312,8 @@ void debug_start(){
         lcd.print(F("OK"));
         Serial.println(F("OK"));
     } else {
-        lcd.print(F("ERROR"));
-        Serial.println(F("ERROR"));
+        lcd.print(F(error_msg));
+        Serial.println(F(error_msg));
         status = false;
     }
 
@@ -1295,8 +1326,8 @@ void debug_start(){
         lcd.print(F("OK"));
         Serial.println(F("OK"));
     } else {
-        lcd.print(F("ERROR"));
-        Serial.println(F("ERROR"));
+        lcd.print(F(error_msg));
+        Serial.println(F(error_msg));
         status = false;
     }
 
@@ -1343,7 +1374,6 @@ void go_debug(){
 
 void EEPROM_init(){
     uint8_t key = EEPROM.read(EEPROM_KEY_ADDR);
-
     if(key != EEPROM_KEY){
         EEPROM.write(EEPROM_KEY_ADDR, EEPROM_KEY);
         #if (ALARM == 1)
@@ -1357,15 +1387,20 @@ void EEPROM_init(){
           option N_B {1, bitRead(opt_status, 0), bitRead(opt_status, 0), 1, optNames[0]};
           option A_OFF {2, bitRead(opt_status, 1), bitRead(opt_status, 1), 2, optNames[1]};
           option A_RST {3, bitRead(opt_status, 2), bitRead(opt_status, 2), 3, optNames[2]};
-          option D_brs_day {4, DIS_BRS_DAY_DT, DIS_BRS_DAY_DT, 4, optNames[3]};
-          option D_brs_night {5, DIS_BRS_NIGHT_DT, DIS_BRS_NIGHT_DT, 5, optNames[4]};
-          option LED_brs_day {6, RGB_BRS_DAY_DT, RGB_BRS_DAY_DT, 6, optNames[5]};
-          option LED_brs_night {7, RGB_BRS_NIGHT_DT, RGB_BRS_NIGHT_DT, 7, optNames[6]};
+          option D_brs_day {4, LCD_BRIGHT_MAX, map(LCD_BRIGHT_MAX, 0, 256, 0, 100), 4, optNames[3]};
+          option D_brs_night {5, LCD_BRIGHT_MIN, map(LCD_BRIGHT_MIN, 0, 256, 0, 100), 5, optNames[4]};
+          #if(LED_MODE == 0)
+            option LED_brs_day {6, LED_BRIGHT_MAX, map(LED_BRIGHT_MAX, 0, 256, 0, 100), 6, optNames[5]};
+            option LED_brs_night {7, LED_BRIGHT_MIN, map(LED_BRIGHT_MIN, 0, 256, 0, 100), 7, optNames[6]};
+          #else
+            option LED_brs_day {6,(255 - LED_BRIGHT_MAX),(255 - LED_BRIGHT_MAX), 6, optNames[5]};
+            option LED_brs_night {7, (255 - LED_BRIGHT_MIN),(255 - LED_BRIGHT_MIN), 7, optNames[6]};
+          #endif
           option Display_mode {8, bitRead(opt_status, 5), bitRead(opt_status, 5), 8, optNames[7]};
           option vol {9, VOLUME_DT, VOLUME_DT, 9, optNames[8]};
           option debug {10, bitRead(opt_status, 3), bitRead(opt_status, 3), 10, optNames[9]};
           option up {11, false, false, 11, optNames[10]};
-          opt_eeprom_upd();
+          opt_eeprom_save();
         #endif
     }
       else{
@@ -1379,6 +1414,7 @@ void EEPROM_init(){
           alarm3.getEEPROM(ALARM3_HOUR_ADDR, ALARM3_MIN_ADDR, ALARM3_SOUND_ADDR, ALARM3_STATUS_ADDR);
         #endif
       }
+
 }
 
 void reload_ch_flg(){
@@ -1391,10 +1427,18 @@ void reload_ch_flg(){
   ch_flg_week = true;
 
   #if (SENSORS == 1)
-    ch_flg_temp = true;
-    ch_flg_hum = true;
-    ch_flg_co2 = true;
-    ch_flg_press = true;
+    #if(SENS_TEMP == 1)
+      ch_flg_temp = true;
+    #endif
+    #if(SENS_HUM == 1)
+      ch_flg_hum = true;
+    #endif
+    #if(SENS_CO2 == 1)
+      ch_flg_co2 = true;
+    #endif
+    #if(SENS_PRESS == 1)
+      ch_flg_press = true;
+    #endif
   #endif
 
   #if (ALARM == 1)
@@ -1414,11 +1458,14 @@ void power_control(){
     }
 }
 
+//----------------------OPTIONS-------------------------------------
+
 #if (OPTION == 1)
 
 void options(){
   if(!firstStartFlag){
     lcd.clear();
+    enc.resetStates();
     backToMain.start();
     backToMain.reset();
     opt_up();
@@ -1427,52 +1474,48 @@ void options(){
     lst_opt.s3_c1 = 0;
     lst_opt.s4_c1 = 0;
     opt_prt(opt);
-    change_flag = false;
     firstStartFlag = true;
   }
   
-
   if (cursor_get_pos()){
     opt_prt(opt);
-    change_flag = false;
   }
 
+  button.tick();
+  
   if((cursor_pos < 100 && button.isHolded()) || backToMain.isReady()){
     Mode(100);
     firstStartFlag = false;
-    change_flag = false;
     draw_main_disp();
+    get_time();
   }
-
-
-
 }
 
-void opt_upd(){
+void opt_save(){
   switch(cursor_pos){
   case 101:
     N_B.param = N_B.d_param;
     N_B.param ? bitSet(opt_status, 0) : bitClear(opt_status, 0);
     break;
   case 104:
-    D_brs_day.param = D_brs_day.d_param;
+    D_brs_day.param = map(D_brs_day.d_param, 0, 100, 0, 256);
     EEPROM.update(DIS_BRS_DAY_ADDR, D_brs_day.param);
     break;
   case 105:
-    D_brs_night.param = D_brs_night.d_param;
+    D_brs_night.param = map(D_brs_night.d_param, 0, 100, 0, 256);
     EEPROM.update(DIS_BRS_NIGHT_ADDR, D_brs_night.param);
     break;
   case 106:
-    LED_brs_day.param = LED_brs_day.d_param;
+    LED_brs_day.param = map(LED_brs_day.d_param, 0, 100, 0, 256);
     EEPROM.update(RGB_BRS_DAY_ADDR, LED_brs_day.param);
     break;
   case 107:
-    LED_brs_night.param = LED_brs_night.d_param;
+    LED_brs_night.param = map(LED_brs_night.d_param, 0, 100, 0, 256);
     EEPROM.update(RGB_BRS_NIGHT_ADDR, LED_brs_night.param);
     break;
   case 108:
     Display_mode.param = Display_mode.d_param;
-    Display_mode.param ? bitSet(opt_status, 8) : bitClear(opt_status, 8);
+    Display_mode.param != 0 ? bitSet(opt_status, 8) : bitClear(opt_status, 8);
     break;
   case 109:
     vol.param = vol.d_param;
@@ -1485,43 +1528,52 @@ void opt_upd(){
 
 void opt_change(bool dir){
   switch(cursor_pos){
-  case 101:
-    N_B.d_param = !N_B.d_param;
-    break;
-  case 104:
-    if(dir) D_brs_day.d_param = ++D_brs_day.d_param;
-      else {D_brs_day.d_param = --D_brs_day.d_param;}
-    D_brs_day.d_param = constrain(D_brs_day.d_param, 0, 100);
-    break;
-  case 105:
-    if(dir) D_brs_night.d_param = ++D_brs_night.d_param;
-      else {D_brs_night.d_param = --D_brs_night.d_param;}
-    D_brs_night.d_param = constrain(D_brs_night.d_param, 0, 100);
-    break;
-  case 106:
-    if(dir) LED_brs_day.d_param = ++LED_brs_day.d_param;
-      else {LED_brs_day.d_param = --LED_brs_day.d_param;}
-    LED_brs_day.d_param = constrain(LED_brs_day.d_param, 0, 100);
-    break;
-  case 107:
-    if(dir) LED_brs_night.d_param = ++LED_brs_night.d_param;
-      else {LED_brs_night.d_param = --LED_brs_night.d_param;}
-    LED_brs_night.d_param = constrain(LED_brs_night.d_param, 0, 100);
-    break;
-  case 108:
-    Display_mode.d_param = !Display_mode.d_param;
-    break;
-  case 109:
-    if(dir) vol.d_param = ++vol.d_param;
-      else {vol.d_param = --vol.d_param;}
-    vol.d_param = constrain(vol.d_param, 0, 100);
-    break;
-  default:
-    break;
+    case 101:
+      N_B.d_param = !N_B.d_param;
+      opt.s1_c2 = N_B.d_param;
+      break;
+    case 104:
+      if(dir) ++D_brs_day.d_param;
+        else { --D_brs_day.d_param; }
+        D_brs_day.d_param = constrain(D_brs_day.d_param, 0, 100);
+        opt.s1_c2 = D_brs_day.d_param;
+      break;
+    case 105:
+      if(dir) ++D_brs_night.d_param;
+        else { --D_brs_night.d_param; }
+      D_brs_night.d_param = constrain(D_brs_night.d_param, 0, 100);
+      opt.s2_c2 = D_brs_night.d_param;
+      break;
+    case 106:
+      if(dir) ++LED_brs_day.d_param;
+       else { --LED_brs_day.d_param; }
+      LED_brs_day.d_param = constrain(LED_brs_day.d_param, 0, 100);
+      opt.s3_c2 = LED_brs_day.d_param;
+      break;
+    case 107:
+      if(dir) ++LED_brs_night.d_param;
+        else { --LED_brs_night.d_param; }
+      LED_brs_night.d_param = constrain(LED_brs_night.d_param, 0, 100);
+      opt.s4_c2 = LED_brs_night.d_param;
+      break;
+    case 108:
+      if(dir) ++Display_mode.d_param;
+        else{ --Display_mode.d_param; };
+      Display_mode.d_param = constrain(Display_mode.d_param, 1, 2);
+      opt.s1_c2 = Display_mode.d_param;
+      break;
+    case 109:
+      if(dir) ++vol.d_param;
+        else { --vol.d_param; }
+      vol.d_param = constrain(vol.d_param, 0, 100);
+      opt.s2_c2 = vol.d_param;
+      break;
+    default:
+      break;
   }
 }
 
-void opt_eeprom_upd(){
+void opt_eeprom_save(){
   EEPROM.update(OPTION_STATUS_ADDR, opt_status);
   EEPROM.update(DIS_BRS_DAY_ADDR, D_brs_day.param);
   EEPROM.update(DIS_BRS_NIGHT_ADDR, D_brs_night.param);
@@ -1535,10 +1587,10 @@ void opt_eeprom_dwl(){
   option N_B {1, bitRead(opt_status, 0), bitRead(opt_status, 0), 1, optNames[0]};
   option A_OFF {2, bitRead(opt_status, 1), bitRead(opt_status, 1), 2, optNames[1]};
   option A_RST {3, bitRead(opt_status, 2), bitRead(opt_status, 2), 3, optNames[2]};
-  option D_brs_day {4, EEPROM.read(DIS_BRS_DAY_ADDR), EEPROM.read(DIS_BRS_DAY_ADDR), 4, optNames[3]};
-  option D_brs_night {5, EEPROM.read(DIS_BRS_NIGHT_ADDR), EEPROM.read(DIS_BRS_NIGHT_ADDR), 5, optNames[4]};
-  option LED_brs_day {6, EEPROM.read(RGB_BRS_DAY_ADDR), EEPROM.read(RGB_BRS_DAY_ADDR), 6, optNames[5]};
-  option LED_brs_night {7, EEPROM.read(RGB_BRS_NIGHT_ADDR), EEPROM.read(RGB_BRS_NIGHT_ADDR), 7, optNames[6]};
+  option D_brs_day {4, EEPROM.read(DIS_BRS_DAY_ADDR), map(EEPROM.read(DIS_BRS_DAY_ADDR), 0, 256, 0, 100), 4, optNames[3]};
+  option D_brs_night {5, EEPROM.read(DIS_BRS_NIGHT_ADDR), map(EEPROM.read(DIS_BRS_NIGHT_ADDR), 0, 256, 0, 100), 5, optNames[4]};
+  option LED_brs_day {6, EEPROM.read(RGB_BRS_DAY_ADDR), map(EEPROM.read(RGB_BRS_DAY_ADDR), 0, 256, 0, 100), 6, optNames[5]};
+  option LED_brs_night {7, EEPROM.read(RGB_BRS_NIGHT_ADDR), map(EEPROM.read(RGB_BRS_NIGHT_ADDR), 0, 256, 0, 100), 7, optNames[6]};
   option Display_mode {8, bitRead(opt_status, 5), bitRead(opt_status, 5), 8, optNames[7]};
   option vol {9, EEPROM.read(VOLUME_ADDR), EEPROM.read(VOLUME_ADDR), 9, optNames[8]};
   option debug {10, bitRead(opt_status, 3), bitRead(opt_status, 3), 10, optNames[9]};
@@ -1546,44 +1598,92 @@ void opt_eeprom_dwl(){
 }
 
 bool cursor_get_pos(){
-  if(cursor_pos > 100){
-    if((cursor_pos >= 104 && cursor_pos <= 109) || cursor_pos == 101){
-      if(enc.isRight()){
+  enc.tick();
+  if(enc.isRight()){
+    if(cursor_pos < 100){
+      cursor_pos++;
+      cursor_pos = constrain(cursor_pos, 1, 11);
+      if(cursor_pos >= 1 && cursor_pos <= 4 && opt.s1_c1 != opt_fnd(1)){
+        opt.s1_c1 = opt_fnd(1); opt.s1_c2 = opt_fnd(101);
+        opt.s2_c1 = opt_fnd(2); opt.s2_c2 = opt_fnd(102);
+        opt.s3_c1 = opt_fnd(3); opt.s3_c2 = opt_fnd(103);
+        opt.s4_c1 = opt_fnd(4); opt.s4_c2 = opt_fnd(104);
+        return true;
+      }
+      else if(cursor_pos >= 5 && cursor_pos <= 8 && opt.s1_c1 != opt_fnd(5)){
+        opt.s1_c1 = opt_fnd(5); opt.s1_c2 = opt_fnd(105);
+        opt.s2_c1 = opt_fnd(6); opt.s2_c2 = opt_fnd(106);
+        opt.s3_c1 = opt_fnd(7); opt.s3_c2 = opt_fnd(107);
+        opt.s4_c1 = opt_fnd(8); opt.s4_c2 = opt_fnd(108);
+        return true;
+      }
+      else if(cursor_pos >= 9 && cursor_pos <= 11 && opt.s1_c1 != opt_fnd(9)){
+        opt.s1_c1 = opt_fnd(9);   opt.s1_c2 = opt_fnd(109);
+        opt.s2_c1 = opt_fnd(10);  opt.s2_c2 = opt_fnd(110);
+        opt.s3_c1 = opt_fnd(11);  opt.s3_c2 = opt_fnd(111);
+        opt.s4_c1 = opt_fnd(12);  opt.s4_c2 = opt_fnd(112);
+        return true;
+      }
+    }
+    else if(cursor_pos >= 100){
+      if(cursor_pos == 101 || (cursor_pos >= 104 && cursor_pos <= 109)){
         opt_change(true);
         return true;
       }
+    }
+  }
 
-      if(enc.isLeft()){
+  if(enc.isLeft()){
+    if(cursor_pos < 100){
+      cursor_pos--;
+      cursor_pos = constrain(cursor_pos, 1, 11);
+      if(cursor_pos >= 1 && cursor_pos <= 4 && opt.s1_c1 != opt_fnd(1)){
+        opt.s1_c1 = opt_fnd(1); opt.s1_c2 = opt_fnd(101);
+        opt.s2_c1 = opt_fnd(2); opt.s2_c2 = opt_fnd(102);
+        opt.s3_c1 = opt_fnd(3); opt.s3_c2 = opt_fnd(103);
+        opt.s4_c1 = opt_fnd(4); opt.s4_c2 = opt_fnd(104);
+        return true;
+      }
+      else if(cursor_pos >= 5 && cursor_pos <= 8 && opt.s1_c1 != opt_fnd(5)){
+        opt.s1_c1 = opt_fnd(5); opt.s1_c2 = opt_fnd(105);
+        opt.s2_c1 = opt_fnd(6); opt.s2_c2 = opt_fnd(106);
+        opt.s3_c1 = opt_fnd(7); opt.s3_c2 = opt_fnd(107);
+        opt.s4_c1 = opt_fnd(8); opt.s4_c2 = opt_fnd(108);
+        return true;
+      }
+      else if(cursor_pos >= 9 && cursor_pos <= 11 && opt.s1_c1 != opt_fnd(9)){
+        opt.s1_c1 = opt_fnd(9);   opt.s1_c2 = opt_fnd(109);
+        opt.s2_c1 = opt_fnd(10);  opt.s2_c2 = opt_fnd(110);
+        opt.s3_c1 = opt_fnd(11);  opt.s3_c2 = opt_fnd(111);
+        opt.s4_c1 = opt_fnd(12);  opt.s4_c2 = opt_fnd(112);
+        return true;
+      }
+    }
+    else if(cursor_pos >= 100){
+      if(cursor_pos == 101 || (cursor_pos >= 104 && cursor_pos <= 109)){
         opt_change(false);
         return true;
       }
-
-      if(enc.isDouble()){
-        opt_upd();
-        change_flag = true;
-        return true;
-      }
     }
+  }
 
-    if(enc.isClick()){
-      cursor_pos = cursor_pos - 100;
-      return true;
+  if(enc.isHolded()){
+    if(cursor_pos < 100){
     }
-
-    if(cursor_pos == 102, 103, 110){
-      if(enc.isHolded()){
+    else if(cursor_pos >= 100){
+      if(cursor_pos == 102, 103, 110){
         switch (cursor_pos){
           case 102:
             #if (ALARM == 1)
               alarm_OFF();
             #endif
-            change_flag = true;
+            return true;
             break;
           case 103:
             #if (ALARM == 1)
               alarm_RST();
             #endif
-            change_flag = true;
+            return true;
             break;
           case 110:
             #if (DEBUG == 1)
@@ -1593,260 +1693,221 @@ bool cursor_get_pos(){
           default:
             break;
         }
+      }
+      else if(cursor_pos == 101 || (cursor_pos >= 104 && cursor_pos <= 109)){
+        opt_save();
         return true;
       }
     }
-
   }
-    else{
-      if(enc.isRight()){
-        ++cursor_pos;
-        cursor_pos = constrain(cursor_pos, 1, 11);
-        return true;
-      }
 
-      if(enc.isLeft()){
-        --cursor_pos;
-        cursor_pos = constrain(cursor_pos, 1, 11);
-        return true;
-      }
-
-      if(cursor_pos >= 1 && cursor_pos <= 4 && opt.s1_c1 != opt_fnd(1)){
-        opt.s1_c1 = opt_fnd(1); opt.s1_c2 = opt_fnd(101);
-        opt.s2_c1 = opt_fnd(2); opt.s2_c2 = opt_fnd(102);
-        opt.s3_c1 = opt_fnd(3); opt.s3_c2 = opt_fnd(103);
-        opt.s4_c1 = opt_fnd(4); opt.s4_c2 = opt_fnd(104);
-        change_flag = true;
-      }
-      else if(cursor_pos >= 5 && cursor_pos <= 8 && opt.s1_c1 != opt_fnd(5)){
-        opt.s1_c1 = opt_fnd(5); opt.s1_c2 = opt_fnd(105);
-        opt.s2_c1 = opt_fnd(6); opt.s2_c2 = opt_fnd(106);
-        opt.s3_c1 = opt_fnd(7); opt.s3_c2 = opt_fnd(107);
-        opt.s4_c1 = opt_fnd(8); opt.s4_c2 = opt_fnd(108);
-        change_flag = true;
-      }
-      else if(cursor_pos >= 9 && cursor_pos <= 11 && opt.s1_c1 != opt_fnd(9)){
-        opt.s1_c1 = opt_fnd(9);   opt.s1_c2 = opt_fnd(109);
-        opt.s2_c1 = opt_fnd(10);  opt.s2_c2 = opt_fnd(110);
-        opt.s3_c1 = opt_fnd(11);  opt.s3_c2 = opt_fnd(111);
-        opt.s4_c1 = opt_fnd(12);  opt.s4_c2 = opt_fnd(112);
-        change_flag = true;
-      }
-
-
-      if(enc.isClick()){
-        if(cursor_pos == 11){
-          opt_up();
-          return true;
-        }
-          else{
-            cursor_pos = cursor_pos + 100;
-            return true;
-          }
-      }
-
+  if(enc.isClick()){
+    if(cursor_pos == 11){
+      opt_up();
     }
+      else{
+        if(cursor_pos < 100){
+          cursor_pos += 100;
+        }
+        else if(cursor_pos >= 100){
+          cursor_pos -= 100;
+        }
+      }
+  }
+
+  // if(enc.isDouble()){
+  //   if(cursor_pos < 100){
+  //     return true;
+  //   }
+  //   else if(cursor_pos >= 100){
+  //     return true;
+  //   }
+  // }
   return false;
 }
 
-void opt_up(){
-  opt.s1_c1 = opt_fnd(1); opt.s1_c2 = opt_fnd(101);
-  opt.s2_c1 = opt_fnd(2); opt.s2_c2 = opt_fnd(102);
-  opt.s3_c1 = opt_fnd(3); opt.s3_c2 = opt_fnd(103);
-  opt.s4_c1 = opt_fnd(4); opt.s4_c2 = opt_fnd(104);
-}
-
-void opt_prt(struct print){
-  for(uint8_t y = 0; y < 4; ++y){
-    switch (y){
-      case 0:
-        if(lst_opt.s1_c1 != opt.s1_c1){
-          lst_opt.s1_c1 = opt.s1_c1;
-          lcd.setCursor(1, y); lcd.print("              "); // 14 slots
-          lcd.setCursor(1, y);
-          switch (opt.s1_c1){
-            case 1:
-              lcd.print(N_B.name);
-              break;
-            case 5:
-              lcd.print(D_brs_night.name);
-              break;
-            case 9:
-              lcd.print(vol.name);
-              break;
-            default:
-              lcd.print("Err "); lcd.print(opt.s1_c1);
-              break;
-          }
-        }
-        if(lst_opt.s1_c2 != opt.s1_c2 || lst_opt.s1_c1 == 0){
-          lst_opt.s1_c2 = opt.s1_c2;
-          lcd.setCursor(14, y); lcd.print("     "); // 5 slots
-          lcd.setCursor(14, y);
-          switch (opt.s1_c1){
-            case 1:
-              if(opt.s1_c2 == 0){
-                lcd.print("OFF");
-              }
-                else{
-                  lcd.print("ON");
-                }
-              break;
-            case 5:
-              lcd.print(D_brs_night.d_param);
-              break;
-            case 9:
-              lcd.print(vol.d_param);
-              break;
-          default:
-            lcd.print("error");
-            break;
-          }
-        }
-        break;
+void opt_prt(struct print cur_opt){
+  if(lst_opt.s1_c1 != cur_opt.s1_c1){
+    lst_opt.s1_c1 = cur_opt.s1_c1;
+    lcd.setCursor(1, 0); space_prt(14);
+    lcd.setCursor(1, 0);
+    switch (cur_opt.s1_c1){
       case 1:
-        if(lst_opt.s2_c1 != opt.s2_c1){
-          lst_opt.s2_c1 = opt.s2_c1;
-          lcd.setCursor(1, y); lcd.print("              ");
-          lcd.setCursor(1, y);
-          switch (opt.s2_c1){
-            case 2:
-              lcd.print(A_OFF.name);
-              break;
-            case 6:
-              lcd.print(LED_brs_day.name);
-              break;
-            case 10:
-              lcd.print(debug.name);
-              break;
-            default:
-              lcd.print("Err "); lcd.print(opt.s2_c1);
-              break;
-          }
-        }
-        if(lst_opt.s2_c2 != opt.s2_c2 || lst_opt.s2_c1 == 0){
-          lst_opt.s2_c2 = opt.s2_c2;
-          lcd.setCursor(14, y); lcd.print("     "); // 5 slots
-          lcd.setCursor(14, y);
-          switch (opt.s2_c1){
-            case 2:
-              if(opt.s2_c2 == 0){
-                lcd.print("hold");
-              }
-                else{
-                  lcd.print("wait");
-                }
-              break;
-            case 6:
-              lcd.print(LED_brs_day.d_param);
-              break;
-            case 10:
-              if(opt.s2_c2 == 0){
-                lcd.print("hold");
-              }
-                else{
-                  lcd.print("wait");
-                }
-              break;
-          default:
-            lcd.print("error");
-            break;
-          }
-        }
+        lcd.print(N_B.name);
         break;
-      case 2:
-        if(lst_opt.s3_c1 != opt.s3_c1){
-          lst_opt.s3_c1 = opt.s3_c1;
-          lcd.setCursor(1, y); lcd.print("              ");
-          lcd.setCursor(1, y);
-          switch (opt.s3_c1){
-            case 3:
-              lcd.print(A_RST.name);
-              break;
-            case 7:
-              lcd.print(LED_brs_night.name);
-              break;
-            case 11:
-              lcd.print(up.name);
-              break;
-            default:
-              lcd.print("error");
-              break;
-          }
-        }
-        if(lst_opt.s3_c2 != opt.s3_c2 || lst_opt.s3_c1 == 0){
-          lst_opt.s3_c2 = opt.s3_c2;
-          lcd.setCursor(14, y); lcd.print("     "); // 5 slots
-          lcd.setCursor(14, y);
-          switch (opt.s3_c1){
-            case 3:
-              if(opt.s3_c2 == 0){
-                lcd.print("hold");
-              }
-                else{
-                  lcd.print("wait");
-                }
-              break;
-            case 7:
-              lcd.print(LED_brs_night.d_param);
-              break;
-            case 11:
-              lcd.print("click");
-              break;
-          default:
-            lcd.print("error");
-            break;
-          }
-        }
+      case 5:
+        lcd.print(D_brs_night.name);
         break;
-      case 3:
-        if(lst_opt.s4_c1 != opt.s4_c1){
-          lst_opt.s4_c1 = opt.s4_c1;
-          lcd.setCursor(1, y); lcd.print("              ");
-          lcd.setCursor(1, y);
-          switch (opt.s4_c1){
-            case 4:
-              lcd.print(D_brs_day.name);
-              break;
-            case 8:
-              lcd.print(Display_mode.name);
-              break;
-            case 12:
-              lcd.print("              ");
-              break;
-            default:
-              break;
-          }
-        }
-        if(lst_opt.s2_c2 != opt.s2_c2 || lst_opt.s4_c1 == 0){
-          lst_opt.s2_c2 = opt.s2_c2;
-          lcd.setCursor(14, y); lcd.print("     "); // 5 slots
-          lcd.setCursor(14, y);
-          switch (opt.s2_c1){
-            case 4:
-              lcd.print(D_brs_day.d_param);
-              break;
-            case 8:
-              if(opt.s3_c2 == 0){
-                lcd.print("blink");
-              }
-                else{
-                  lcd.print("slow");
-                }
-              break;
-            case 12:
-              lcd.print("     ");
-              break;
-            default:
-              lcd.print("error");
-              break;
-          }
-        }
+      case 9:
+        lcd.print(vol.name);
         break;
       default:
+        lcd.print(error_msg); // lcd.print(cur_opt.s1_c1);
         break;
-    } 
+    }
   }
+  if(lst_opt.s1_c2 != cur_opt.s1_c2 || lst_opt.s1_c1 == 0){
+    lst_opt.s1_c2 = cur_opt.s1_c2;
+    lcd.setCursor(14, 0); space_prt(5);
+    lcd.setCursor(14, 0);
+    switch (cur_opt.s1_c1){
+      case 1:
+        if(cur_opt.s1_c2 == 0){
+          lcd.print("OFF");
+        }
+          else{
+            lcd.print("ON");
+          }
+        break;
+      case 5:
+        lcd.print(D_brs_night.d_param);
+        break;
+      case 9:
+        lcd.print(vol.d_param);
+        break;
+      default:
+        lcd.print(error_msg);
+        break;
+    }
+  }
+  if(lst_opt.s2_c1 != cur_opt.s2_c1){
+    lst_opt.s2_c1 = cur_opt.s2_c1;
+    lcd.setCursor(1, 1); space_prt(14);
+    lcd.setCursor(1, 1);
+    switch (cur_opt.s2_c1){
+      case 2:
+        lcd.print(A_OFF.name);
+        break;
+      case 6:
+        lcd.print(LED_brs_day.name);
+        break;
+      case 10:
+        lcd.print(debug.name);
+        break;
+      default:
+        lcd.print(error_msg); // lcd.print(cur_opt.s2_c1);
+        break;
+    }
+  }
+  if(lst_opt.s2_c2 != cur_opt.s2_c2 || lst_opt.s2_c1 == 0){
+    lst_opt.s2_c2 = cur_opt.s2_c2;
+    lcd.setCursor(14, 1); space_prt(5);
+    lcd.setCursor(14, 1);
+    switch (cur_opt.s2_c1){
+      case 2:
+        if(cur_opt.s2_c2 == 0){
+          lcd.print("hold");
+        }
+          else{
+            lcd.print("wait");
+          }
+        break;
+      case 6:
+        lcd.print(LED_brs_day.d_param);
+        break;
+      case 10:
+        if(cur_opt.s2_c2 == 0){
+          lcd.print("hold");
+        }
+          else{
+            lcd.print("wait");
+          }
+        break;
+      default:
+        lcd.print(error_msg);
+        break;
+    }
+  }
+  if(lst_opt.s3_c1 != cur_opt.s3_c1){
+    lst_opt.s3_c1 = cur_opt.s3_c1;
+    lcd.setCursor(1, 2); space_prt(14);
+    lcd.setCursor(1, 2);
+    switch (cur_opt.s3_c1){
+      case 3:
+        lcd.print(A_RST.name);
+        break;
+      case 7:
+        lcd.print(LED_brs_night.name);
+        break;
+      case 11:
+        lcd.print(up.name);
+        break;
+      default:
+        lcd.print(error_msg);
+        break;
+    }
+  }
+  if(lst_opt.s3_c2 != cur_opt.s3_c2 || lst_opt.s3_c1 == 0){
+    lst_opt.s3_c2 = cur_opt.s3_c2;
+    lcd.setCursor(14, 2); space_prt(5);
+    lcd.setCursor(14, 2);
+    switch (cur_opt.s3_c1){
+      case 3:
+        if(cur_opt.s3_c2 == 0){
+          lcd.print("hold");
+        }
+          else{
+            lcd.print("wait");
+          }
+        break;
+      case 7:
+        lcd.print(LED_brs_night.d_param);
+        break;
+      case 11:
+        lcd.print("click");
+        break;
+      default:
+        lcd.print(error_msg);
+        break;
+    }
+  }
+  if(lst_opt.s4_c1 != cur_opt.s4_c1){
+    lst_opt.s4_c1 = cur_opt.s4_c1;
+    lcd.setCursor(1, 3); space_prt(14);
+    lcd.setCursor(1, 3);
+    switch (cur_opt.s4_c1){
+      case 4:
+        lcd.print(D_brs_day.name);
+        break;
+      case 8:
+        lcd.print(Display_mode.name);
+        break;
+      case 12:
+        space_prt(14);
+        break;
+      default:
+        lcd.print(error_msg);
+        break;
+    }
+  }
+  if(lst_opt.s4_c2 != cur_opt.s4_c2 || lst_opt.s4_c1 == 0){
+    lst_opt.s4_c2 = cur_opt.s4_c2;
+    lcd.setCursor(14, 3); space_prt(5);
+    lcd.setCursor(14, 3);
+    switch (cur_opt.s4_c1){
+      case 4:
+        lcd.print(D_brs_day.d_param);
+        break;
+      case 8:
+        if(cur_opt.s3_c2 == 0){
+          lcd.print("blink");
+        }
+        else if(cur_opt.s3_c2 == 1){
+            lcd.print("slow");
+        }
+          else{
+            lcd.print("OFF");
+          }
+        break;
+      case 12:
+        space_prt(5);
+        break;
+      default:
+        lcd.print(error_msg);
+        break;
+    }
+  }
+  cursor_prt();
 }
 
 uint8_t opt_fnd(uint8_t pos){
@@ -1904,4 +1965,90 @@ uint8_t opt_fnd(uint8_t pos){
   }
   return 0;
 }
+
+void cursor_prt(){
+  static uint8_t last_curs_pos;
+  if(last_curs_pos != cursor_pos){
+    if(last_curs_pos == 1 || last_curs_pos == 5 || last_curs_pos == 9){
+      lcd.setCursor(0, 0);
+      space_prt(1);
+    }
+    else if(last_curs_pos == 2 || last_curs_pos == 6 || last_curs_pos == 10){
+      lcd.setCursor(1, 0);
+      space_prt(1);
+    }
+    else if(last_curs_pos == 3 || last_curs_pos == 7 || last_curs_pos == 11){
+      lcd.setCursor(2, 0);
+      space_prt(1);
+    }
+    else if(last_curs_pos == 4 || last_curs_pos == 8 || last_curs_pos == 12){
+      lcd.setCursor(3, 0);
+      space_prt(1);
+    }
+    else if(last_curs_pos == 101 || last_curs_pos == 105 || last_curs_pos == 109){
+      lcd.setCursor(0, 20);
+      space_prt(1);
+    }
+    else if(last_curs_pos == 102 || last_curs_pos == 106 || last_curs_pos == 110){
+      lcd.setCursor(1, 20);
+      space_prt(1);
+    }
+    else if(last_curs_pos == 103 || last_curs_pos == 107 || last_curs_pos == 111){
+      lcd.setCursor(2, 20);
+      space_prt(1);
+    }
+    else if(last_curs_pos == 104 || last_curs_pos == 108 || last_curs_pos == 112){
+      lcd.setCursor(3, 20);
+      space_prt(1);
+    }
+    
+    if(cursor_pos == 1 || cursor_pos == 5 || cursor_pos == 9){
+      lcd.setCursor(0, 0);
+      lcd.print(char(CURSOR));
+    }
+    else if(cursor_pos == 2 || cursor_pos == 6 || cursor_pos == 10){
+      lcd.setCursor(1, 0);
+      lcd.print(char(CURSOR));
+    }
+    else if(cursor_pos == 3 || cursor_pos == 7 || cursor_pos == 11){
+      lcd.setCursor(2, 0);
+      lcd.print(char(CURSOR));
+    }
+    else if(cursor_pos == 4 || cursor_pos == 8 || cursor_pos == 12){
+      lcd.setCursor(3, 0);
+      lcd.print(char(CURSOR));
+    }
+    else if(cursor_pos == 101 || cursor_pos == 105 || cursor_pos == 109){
+      lcd.setCursor(0, 20);
+      lcd.print(char(CURSOR));
+    }
+    else if(cursor_pos == 102 || cursor_pos == 106 || cursor_pos == 110){
+      lcd.setCursor(1, 20);
+      lcd.print(char(CURSOR));
+    }
+    else if(cursor_pos == 103 || cursor_pos == 107 || cursor_pos == 111){
+      lcd.setCursor(2, 20);
+      lcd.print(char(CURSOR));
+    }
+    else if(cursor_pos == 104 || cursor_pos == 108 || cursor_pos == 112){
+      lcd.setCursor(3, 20);
+      lcd.print(char(CURSOR));
+    }
+    last_curs_pos = cursor_pos;
+  }
+}
+
+void space_prt(uint8_t q){
+  for(uint8_t x = 0; x < q; x++){
+    lcd.print(" ");
+  }
+}
+
+void opt_up(){
+  opt.s1_c1 = opt_fnd(1); opt.s1_c2 = opt_fnd(101);
+  opt.s2_c1 = opt_fnd(2); opt.s2_c2 = opt_fnd(102);
+  opt.s3_c1 = opt_fnd(3); opt.s3_c2 = opt_fnd(103);
+  opt.s4_c1 = opt_fnd(4); opt.s4_c2 = opt_fnd(104);
+}
+
 #endif
