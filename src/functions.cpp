@@ -28,8 +28,19 @@ bool dotFlag;
 bool firstStartFlag = false;
 
 #if (OPTION == 1)
+  // option N_B;
+  // option A_OFF;
+  // option A_RST;
+  // option D_brs_day;
+  // option D_brs_night;
+  // option LED_brs_day;
+  // option LED_brs_night;
+  // option Display_mode;
+  // option vol;
+  // option debug;
+  // option up;
   option N_B, A_OFF, A_RST, D_brs_day, D_brs_night, LED_brs_day, LED_brs_night, Display_mode, vol, debug, up;
-  static bool opt_status;   // 0 - N_B, 1 - A_OFF, 2 - A_RST, 3 - debug; 4 - up; 5 - display_mode
+  static bool opt_status;   // 0 - N_B, 1 - A_OFF, 2 - A_RST, 3 - debug; 4 - display_mode
   static uint8_t cursor_pos = 1;
   print opt,lst_opt;
   const static String error_msg = "error";
@@ -124,6 +135,7 @@ void display_init(){
   lcd.init();
   lcd.backlight();
   lcd.clear();
+  loadClock();
   backToMain.stop();
 }
 
@@ -138,9 +150,9 @@ void draw_main_disp(){
   #if (DISPLAY_TYPE == 1)
     get_time();
     #if (CLOCK == 1)
+      // loadClock();
       lcd.clear();
       reload_ch_flg();
-      loadClock();
       drawClock(hrs, mins, 0, 0);
       drawData();
       #if (SENSORS == 1)
@@ -666,7 +678,7 @@ void modesTick() {
     if (mode == 0) {
       lcd.clear();
       reload_ch_flg();
-      loadClock();
+      // loadClock();
       drawClock(hrs, mins, 0, 0);
       if (DISPLAY_TYPE == 1) drawData();
       #if (SENSORS == 1)
@@ -1033,7 +1045,7 @@ void drawAlarmClock(uint8_t hours, uint8_t minutes, uint8_t x, uint8_t y, bool d
 }
 
 void alarmTuning(){
-  button.tick();
+  checkInput();
   if (!firstStartFlag){
     alarmTune.hour = hrs;
     alarmTune.minute = mins;
@@ -1043,7 +1055,7 @@ void alarmTuning(){
     set_alarm = 1;
     set_param = 1;
 
-    loadClock();
+    // loadClock();
     lcd.clear();
     enc.resetStates();
 
@@ -1180,7 +1192,6 @@ void alarmTuning(){
     firstStartFlag = false;
     draw_main_disp();
     backToMain.stop();
-    get_time();
   }
 }
 
@@ -1373,6 +1384,8 @@ void go_debug(){
 #endif
 
 void EEPROM_init(){
+    Serial.begin(9600);
+
     uint8_t key = EEPROM.read(EEPROM_KEY_ADDR);
     if(key != EEPROM_KEY){
         EEPROM.write(EEPROM_KEY_ADDR, EEPROM_KEY);
@@ -1384,22 +1397,49 @@ void EEPROM_init(){
 
         #if (OPTION == 1)
           opt_status = OPTION_DT;
-          option N_B {1, bitRead(opt_status, 0), bitRead(opt_status, 0), 1, optNames[0]};
-          option A_OFF {2, bitRead(opt_status, 1), bitRead(opt_status, 1), 2, optNames[1]};
-          option A_RST {3, bitRead(opt_status, 2), bitRead(opt_status, 2), 3, optNames[2]};
-          option D_brs_day {4, LCD_BRIGHT_MAX, map(LCD_BRIGHT_MAX, 0, 256, 0, 100), 4, optNames[3]};
-          option D_brs_night {5, LCD_BRIGHT_MIN, map(LCD_BRIGHT_MIN, 0, 256, 0, 100), 5, optNames[4]};
+          // option N_B {1, bitRead(opt_status, 0), bitRead(opt_status, 0), 1, optNames[0]};
+          N_B.id = 1; N_B.param = bitRead(opt_status, 0); N_B.d_param = bitRead(opt_status, 0);
+          N_B.disp_pos = 1; N_B.name = optNames[0];
+          Serial.println("Opt_1: " + (String)N_B.id + " " + N_B.name + " " + (String)N_B.param);
+          // option A_OFF {2, bitRead(opt_status, 1), bitRead(opt_status, 1), 2, optNames[1]};
+          A_OFF.id = 2; A_OFF.param = bitRead(opt_status, 1); A_OFF.d_param = bitRead(opt_status, 1);
+          A_OFF.disp_pos = 2; A_OFF.name = optNames[1];
+          // option A_RST {3, bitRead(opt_status, 2), bitRead(opt_status, 2), 3, optNames[2]};
+          A_RST.id = 3; A_RST.param = bitRead(opt_status, 2); A_RST.d_param = bitRead(opt_status, 2);
+          A_RST.disp_pos = 3; A_RST.name = optNames[2];
+          // option D_brs_day {4, LCD_BRIGHT_MAX, map(LCD_BRIGHT_MAX, 0, 256, 0, 100), 4, optNames[3]};
+          D_brs_day.id = 4; D_brs_day.param = LCD_BRIGHT_MAX; D_brs_day.d_param = map(LCD_BRIGHT_MAX, 0, 256, 0, 100);
+          D_brs_day.disp_pos = 4; D_brs_day.name = optNames[3];
+          // option D_brs_night {5, LCD_BRIGHT_MIN, map(LCD_BRIGHT_MIN, 0, 256, 0, 100), 5, optNames[4]};
+          D_brs_night.id = 5; D_brs_night.param = LCD_BRIGHT_MIN; D_brs_night.d_param = map(LCD_BRIGHT_MIN, 0, 256, 0, 100);
+          D_brs_night.disp_pos = 5; D_brs_night.name = optNames[4];
           #if(LED_MODE == 0)
-            option LED_brs_day {6, LED_BRIGHT_MAX, map(LED_BRIGHT_MAX, 0, 256, 0, 100), 6, optNames[5]};
-            option LED_brs_night {7, LED_BRIGHT_MIN, map(LED_BRIGHT_MIN, 0, 256, 0, 100), 7, optNames[6]};
+            // option LED_brs_day {6, LED_BRIGHT_MAX, map(LED_BRIGHT_MAX, 0, 256, 0, 100), 6, optNames[5]};
+            LED_brs_day.id = 6; LED_brs_day.param = LCD_BRIGHT_MAX; LED_brs_day.d_param = map(LCD_BRIGHT_MAX, 0, 256, 0, 100);
+            LED_brs_day.disp_pos = 6; LED_brs_day.name = optNames[5];
+            // option LED_brs_night {7, LED_BRIGHT_MIN, map(LED_BRIGHT_MIN, 0, 256, 0, 100), 7, optNames[6]};
+            LED_brs_night.id = 7; LED_brs_night.param = LCD_BRIGHT_MIN; LED_brs_night.d_param = map(LCD_BRIGHT_MIN, 0, 256, 0, 100);
+            LED_brs_night.disp_pos = 7; LED_brs_night.name = optNames[6];
           #else
-            option LED_brs_day {6,(255 - LED_BRIGHT_MAX),(255 - LED_BRIGHT_MAX), 6, optNames[5]};
-            option LED_brs_night {7, (255 - LED_BRIGHT_MIN),(255 - LED_BRIGHT_MIN), 7, optNames[6]};
+            // option LED_brs_day {6,(255 - LED_BRIGHT_MAX),(255 - LED_BRIGHT_MAX), 6, optNames[5]};
+            LED_brs_day.id = 6; LED_brs_day.param = 255 - LCD_BRIGHT_MAX; LED_brs_day.d_param = map(255 - LCD_BRIGHT_MAX, 0, 256, 0, 100);
+            LED_brs_day.disp_pos = 6; LED_brs_day.name = optNames[5];
+            // option LED_brs_night {7, (255 - LED_BRIGHT_MIN),(255 - LED_BRIGHT_MIN), 7, optNames[6]};
+            LED_brs_night.id = 7; LED_brs_night.param = 255 - LCD_BRIGHT_MIN; LED_brs_night.d_param = map(255 - LCD_BRIGHT_MIN, 0, 256, 0, 100);
+            LED_brs_night.disp_pos = 7; LED_brs_night.name = optNames[6];
           #endif
-          option Display_mode {8, bitRead(opt_status, 5), bitRead(opt_status, 5), 8, optNames[7]};
-          option vol {9, VOLUME_DT, VOLUME_DT, 9, optNames[8]};
-          option debug {10, bitRead(opt_status, 3), bitRead(opt_status, 3), 10, optNames[9]};
-          option up {11, false, false, 11, optNames[10]};
+          // option Display_mode {8, bitRead(opt_status, 4), bitRead(opt_status, 4), 8, optNames[7]};
+          Display_mode.id = 8; Display_mode.param = bitRead(opt_status, 4); Display_mode.d_param = bitRead(opt_status, 4);
+          Display_mode.disp_pos = 8; Display_mode.name = optNames[7];
+          // option vol {9, VOLUME_DT, VOLUME_DT, 9, optNames[8]};
+          vol.id = 9; vol.param = VOLUME_DT; vol.d_param = VOLUME_DT;
+          vol.disp_pos = 9; vol.name = optNames[8];
+          // option debug {10, bitRead(opt_status, 3), bitRead(opt_status, 3), 10, optNames[9]};
+          debug.id = 10; debug.param = bitRead(opt_status, 3); debug.d_param = bitRead(opt_status, 3);
+          debug.disp_pos = 10; debug.name = optNames[9];
+          // option up {11, false, false, 11, optNames[10]};
+          up.id = 11; up.param = false; up.d_param = false;
+          up.disp_pos = 11; up.name = optNames[10];
           opt_eeprom_save();
         #endif
     }
@@ -1407,6 +1447,19 @@ void EEPROM_init(){
         #if (OPTION == 1)
           opt_eeprom_dwl();
         #endif
+
+        Serial.println("Opt_1: " + (String)N_B.id + " " + N_B.name + " " + (String)N_B.param);
+        Serial.println("Opt_2: " + (String)A_OFF.id + " " + A_OFF.name + " " + (String)A_OFF.param);
+        Serial.println("Opt_3: " + (String)A_RST.id + " " + A_RST.name + " " + (String)A_RST.param);
+        Serial.println("Opt_4: " + (String)D_brs_day.id + " " + D_brs_day.name + " " + (String)D_brs_day.param);
+        Serial.println("Opt_5: " + (String)D_brs_night.id + " " + D_brs_night.name + " " + (String)D_brs_night.param);
+        Serial.println("Opt_6: " + (String)LED_brs_day.id + " " + LED_brs_day.name + " " + (String)LED_brs_day.param);
+        Serial.println("Opt_7: " + (String)LED_brs_night.id + " " + LED_brs_night.name + " " + (String)LED_brs_night.param);
+        Serial.println("Opt_8: " + (String)Display_mode.id + " " + Display_mode.name + " " + (String)Display_mode.param);
+        Serial.println("Opt_9: " + (String)vol.id + " " + vol.name + " " + (String)vol.param);
+        Serial.println("Opt_10: " + (String)debug.id + " " + debug.name + " " + (String)debug.param);
+        Serial.println("Opt_11: " + (String)up.id + " " + up.name + " " + (String)up.param);
+
 
         #if (ALARM == 1)
           alarm1.getEEPROM(ALARM1_HOUR_ADDR, ALARM1_MIN_ADDR, ALARM1_SOUND_ADDR, ALARM1_STATUS_ADDR);
@@ -1474,20 +1527,22 @@ void options(){
     lst_opt.s3_c1 = 0;
     lst_opt.s4_c1 = 0;
     opt_prt(opt);
+    cursor_pos = 1;
+    cursor_prt();
     firstStartFlag = true;
   }
-  
+
+  checkInput();
+
   if (cursor_get_pos()){
     opt_prt(opt);
   }
 
-  button.tick();
-  
-  if((cursor_pos < 100 && button.isHolded()) || backToMain.isReady()){
+  if(button.isHolded() || backToMain.isReady()){
     Mode(100);
     firstStartFlag = false;
     draw_main_disp();
-    get_time();
+    cursor_pos = 1;
   }
 }
 
@@ -1515,7 +1570,7 @@ void opt_save(){
     break;
   case 108:
     Display_mode.param = Display_mode.d_param;
-    Display_mode.param != 0 ? bitSet(opt_status, 8) : bitClear(opt_status, 8);
+    Display_mode.param != 0 ? bitSet(opt_status, 4) : bitClear(opt_status, 4);
     break;
   case 109:
     vol.param = vol.d_param;
@@ -1584,25 +1639,47 @@ void opt_eeprom_save(){
 
 void opt_eeprom_dwl(){
   EEPROM.get(OPTION_STATUS_ADDR, opt_status);
-  option N_B {1, bitRead(opt_status, 0), bitRead(opt_status, 0), 1, optNames[0]};
-  option A_OFF {2, bitRead(opt_status, 1), bitRead(opt_status, 1), 2, optNames[1]};
-  option A_RST {3, bitRead(opt_status, 2), bitRead(opt_status, 2), 3, optNames[2]};
-  option D_brs_day {4, EEPROM.read(DIS_BRS_DAY_ADDR), map(EEPROM.read(DIS_BRS_DAY_ADDR), 0, 256, 0, 100), 4, optNames[3]};
-  option D_brs_night {5, EEPROM.read(DIS_BRS_NIGHT_ADDR), map(EEPROM.read(DIS_BRS_NIGHT_ADDR), 0, 256, 0, 100), 5, optNames[4]};
-  option LED_brs_day {6, EEPROM.read(RGB_BRS_DAY_ADDR), map(EEPROM.read(RGB_BRS_DAY_ADDR), 0, 256, 0, 100), 6, optNames[5]};
-  option LED_brs_night {7, EEPROM.read(RGB_BRS_NIGHT_ADDR), map(EEPROM.read(RGB_BRS_NIGHT_ADDR), 0, 256, 0, 100), 7, optNames[6]};
-  option Display_mode {8, bitRead(opt_status, 5), bitRead(opt_status, 5), 8, optNames[7]};
-  option vol {9, EEPROM.read(VOLUME_ADDR), EEPROM.read(VOLUME_ADDR), 9, optNames[8]};
-  option debug {10, bitRead(opt_status, 3), bitRead(opt_status, 3), 10, optNames[9]};
-  option up {11, false, false, 11, optNames[10]};
+  // option N_B {1, bitRead(opt_status, 0), bitRead(opt_status, 0), 1, optNames[0]};
+  N_B.id = 1; N_B.param = bitRead(opt_status, 0); N_B.d_param = bitRead(opt_status, 0);
+  N_B.disp_pos = 1; N_B.name = optNames[0];
+  // option A_OFF {2, bitRead(opt_status, 1), bitRead(opt_status, 1), 2, optNames[1]};
+  A_OFF.id = 2; A_OFF.param = bitRead(opt_status, 1); A_OFF.d_param = bitRead(opt_status, 1);
+  A_OFF.disp_pos = 2; A_OFF.name = optNames[1];
+  // option A_RST {3, bitRead(opt_status, 2), bitRead(opt_status, 2), 3, optNames[2]};
+  A_RST.id = 3; A_RST.param = bitRead(opt_status, 2); A_RST.d_param = bitRead(opt_status, 2);
+  A_RST.disp_pos = 3; A_RST.name = optNames[2];
+  // option D_brs_day {4, EEPROM.read(DIS_BRS_DAY_ADDR), map(EEPROM.read(DIS_BRS_DAY_ADDR), 0, 256, 0, 100), 4, optNames[3]};
+  D_brs_day.id = 4; D_brs_day.param = EEPROM.read(DIS_BRS_DAY_ADDR); D_brs_day.d_param = map(EEPROM.read(DIS_BRS_DAY_ADDR), 0, 256, 0, 100);
+  D_brs_day.disp_pos = 4; D_brs_day.name = optNames[3];
+  // option D_brs_night {5, EEPROM.read(DIS_BRS_NIGHT_ADDR), map(EEPROM.read(DIS_BRS_NIGHT_ADDR), 0, 256, 0, 100), 5, optNames[4]};
+  D_brs_night.id = 5; D_brs_night.param = EEPROM.read(DIS_BRS_NIGHT_ADDR); D_brs_night.d_param = map(EEPROM.read(DIS_BRS_NIGHT_ADDR), 0, 256, 0, 100);
+  D_brs_night.disp_pos = 5; D_brs_night.name = optNames[4];
+  // option LED_brs_day {6, EEPROM.read(RGB_BRS_DAY_ADDR), map(EEPROM.read(RGB_BRS_DAY_ADDR), 0, 256, 0, 100), 6, optNames[5]};
+  LED_brs_day.id = 6; LED_brs_day.param = EEPROM.read(RGB_BRS_DAY_ADDR); LED_brs_day.d_param = map(EEPROM.read(RGB_BRS_DAY_ADDR), 0, 256, 0, 100);
+  LED_brs_day.disp_pos = 6; LED_brs_day.name = optNames[5];
+  // option LED_brs_night {7, EEPROM.read(RGB_BRS_NIGHT_ADDR), map(EEPROM.read(RGB_BRS_NIGHT_ADDR), 0, 256, 0, 100), 7, optNames[6]};
+  LED_brs_night.id = 7; LED_brs_night.param = EEPROM.read(RGB_BRS_NIGHT_ADDR); LED_brs_night.d_param = map(EEPROM.read(RGB_BRS_NIGHT_ADDR), 0, 256, 0, 100);
+  LED_brs_night.disp_pos = 7; LED_brs_night.name = optNames[6];
+  // option Display_mode {8, bitRead(opt_status, 4), bitRead(opt_status, 4), 8, optNames[7]};
+  Display_mode.id = 8; Display_mode.param = bitRead(opt_status, 4); Display_mode.d_param = bitRead(opt_status, 4);
+  Display_mode.disp_pos = 8; Display_mode.name = optNames[7];
+  // option vol {9, EEPROM.read(VOLUME_ADDR), EEPROM.read(VOLUME_ADDR), 9, optNames[8]};
+  vol.id = 9; vol.param = EEPROM.read(VOLUME_ADDR); vol.d_param = EEPROM.read(VOLUME_ADDR);
+  vol.disp_pos = 9; vol.name = optNames[8];
+  // option debug {10, bitRead(opt_status, 3), bitRead(opt_status, 3), 10, optNames[9]};
+  debug.id = 10; debug.param = bitRead(opt_status, 3); debug.d_param = bitRead(opt_status, 3);
+  debug.disp_pos = 10; debug.name = optNames[9];
+  // option up {11, false, false, 11, optNames[10]};
+  up.id = 11; up.param = false; up.d_param = false;
+  up.disp_pos = 11; up.name = optNames[10];  
 }
 
 bool cursor_get_pos(){
-  enc.tick();
   if(enc.isRight()){
     if(cursor_pos < 100){
       cursor_pos++;
       cursor_pos = constrain(cursor_pos, 1, 11);
+      cursor_prt();
       if(cursor_pos >= 1 && cursor_pos <= 4 && opt.s1_c1 != opt_fnd(1)){
         opt.s1_c1 = opt_fnd(1); opt.s1_c2 = opt_fnd(101);
         opt.s2_c1 = opt_fnd(2); opt.s2_c2 = opt_fnd(102);
@@ -1625,18 +1702,20 @@ bool cursor_get_pos(){
         return true;
       }
     }
-    else if(cursor_pos >= 100){
+    else if(cursor_pos > 100){
       if(cursor_pos == 101 || (cursor_pos >= 104 && cursor_pos <= 109)){
         opt_change(true);
         return true;
       }
     }
+    backToMain.reset();
   }
 
   if(enc.isLeft()){
     if(cursor_pos < 100){
       cursor_pos--;
       cursor_pos = constrain(cursor_pos, 1, 11);
+      cursor_prt();
       if(cursor_pos >= 1 && cursor_pos <= 4 && opt.s1_c1 != opt_fnd(1)){
         opt.s1_c1 = opt_fnd(1); opt.s1_c2 = opt_fnd(101);
         opt.s2_c1 = opt_fnd(2); opt.s2_c2 = opt_fnd(102);
@@ -1659,12 +1738,13 @@ bool cursor_get_pos(){
         return true;
       }
     }
-    else if(cursor_pos >= 100){
+    else if(cursor_pos > 100){
       if(cursor_pos == 101 || (cursor_pos >= 104 && cursor_pos <= 109)){
         opt_change(false);
         return true;
       }
     }
+    backToMain.reset();
   }
 
   if(enc.isHolded()){
@@ -1699,20 +1779,25 @@ bool cursor_get_pos(){
         return true;
       }
     }
+    backToMain.reset();
   }
 
   if(enc.isClick()){
     if(cursor_pos == 11){
       opt_up();
+      return true;
     }
       else{
-        if(cursor_pos < 100){
+        if(cursor_pos < 99){
           cursor_pos += 100;
+          cursor_prt();
         }
-        else if(cursor_pos >= 100){
+        else if(cursor_pos > 100){
           cursor_pos -= 100;
+          cursor_prt();
         }
       }
+    backToMain.reset();
   }
 
   // if(enc.isDouble()){
@@ -1726,7 +1811,7 @@ bool cursor_get_pos(){
   return false;
 }
 
-void opt_prt(struct print cur_opt){
+void opt_prt(print cur_opt){
   if(lst_opt.s1_c1 != cur_opt.s1_c1){
     lst_opt.s1_c1 = cur_opt.s1_c1;
     lcd.setCursor(1, 0); space_prt(14);
@@ -1974,65 +2059,65 @@ void cursor_prt(){
       space_prt(1);
     }
     else if(last_curs_pos == 2 || last_curs_pos == 6 || last_curs_pos == 10){
-      lcd.setCursor(1, 0);
+      lcd.setCursor(0, 1);
       space_prt(1);
     }
     else if(last_curs_pos == 3 || last_curs_pos == 7 || last_curs_pos == 11){
-      lcd.setCursor(2, 0);
+      lcd.setCursor(0, 2);
       space_prt(1);
     }
     else if(last_curs_pos == 4 || last_curs_pos == 8 || last_curs_pos == 12){
-      lcd.setCursor(3, 0);
+      lcd.setCursor(0, 3);
       space_prt(1);
     }
     else if(last_curs_pos == 101 || last_curs_pos == 105 || last_curs_pos == 109){
-      lcd.setCursor(0, 20);
+      lcd.setCursor(20, 0);
       space_prt(1);
     }
     else if(last_curs_pos == 102 || last_curs_pos == 106 || last_curs_pos == 110){
-      lcd.setCursor(1, 20);
+      lcd.setCursor(20, 1);
       space_prt(1);
     }
     else if(last_curs_pos == 103 || last_curs_pos == 107 || last_curs_pos == 111){
-      lcd.setCursor(2, 20);
+      lcd.setCursor(20, 2);
       space_prt(1);
     }
     else if(last_curs_pos == 104 || last_curs_pos == 108 || last_curs_pos == 112){
-      lcd.setCursor(3, 20);
+      lcd.setCursor(20, 3);
       space_prt(1);
     }
     
     if(cursor_pos == 1 || cursor_pos == 5 || cursor_pos == 9){
       lcd.setCursor(0, 0);
-      lcd.print(char(CURSOR));
+      lcd.print(char(CURSOR_L));
     }
     else if(cursor_pos == 2 || cursor_pos == 6 || cursor_pos == 10){
-      lcd.setCursor(1, 0);
-      lcd.print(char(CURSOR));
+      lcd.setCursor(0, 1);
+      lcd.print(char(CURSOR_L));
     }
     else if(cursor_pos == 3 || cursor_pos == 7 || cursor_pos == 11){
-      lcd.setCursor(2, 0);
-      lcd.print(char(CURSOR));
+      lcd.setCursor(0, 2);
+      lcd.print(char(CURSOR_L));
     }
     else if(cursor_pos == 4 || cursor_pos == 8 || cursor_pos == 12){
-      lcd.setCursor(3, 0);
-      lcd.print(char(CURSOR));
+      lcd.setCursor(0, 3);
+      lcd.print(char(CURSOR_L));
     }
     else if(cursor_pos == 101 || cursor_pos == 105 || cursor_pos == 109){
-      lcd.setCursor(0, 20);
-      lcd.print(char(CURSOR));
+      lcd.setCursor(20, 0);
+      lcd.print(char(CURSOR_R));
     }
     else if(cursor_pos == 102 || cursor_pos == 106 || cursor_pos == 110){
-      lcd.setCursor(1, 20);
-      lcd.print(char(CURSOR));
+      lcd.setCursor(20, 1);
+      lcd.print(char(CURSOR_R));
     }
     else if(cursor_pos == 103 || cursor_pos == 107 || cursor_pos == 111){
-      lcd.setCursor(2, 20);
-      lcd.print(char(CURSOR));
+      lcd.setCursor(20, 2);
+      lcd.print(char(CURSOR_R));
     }
     else if(cursor_pos == 104 || cursor_pos == 108 || cursor_pos == 112){
-      lcd.setCursor(3, 20);
-      lcd.print(char(CURSOR));
+      lcd.setCursor(20, 3);
+      lcd.print(char(CURSOR_R));
     }
     last_curs_pos = cursor_pos;
   }

@@ -28,7 +28,6 @@
 #endif
 
 GTimer_ms clockTimer(500);                    //Get real time every 0.5 sec
-GTimer_ms brightTimer(2000);                  //Check brightness 2 sec
 GTimer_ms powerControlTimer(1*60*60*1000);    //Check power voltage every 1 hour
 
 #endif

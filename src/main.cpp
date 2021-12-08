@@ -43,7 +43,7 @@
 //------------------------SETUP-----------------------
 
 void setup() {
-  Serial.begin(9600);
+  // Serial.begin(9600);
 
   EEPROM_init();
 
@@ -89,11 +89,6 @@ void loop() {
     power_control();
   }
 
-  if (brightTimer.isReady() ) {
-    checkBrightness();          // яркость
-    // Serial.println("Check brightness is DONE");
-  }
-
   #if (SENSORS == 1)
     if (sensorsTimer.isReady()) {
       readSensors();             // читаем показания датчиков с периодом SENS_TIME
@@ -126,51 +121,58 @@ void loop() {
 
     #if (SENSORS == 1 && GRAPH == 1)
       plotSensorsTick();
-    #endif   
+    #endif 
 
-    #if (GRAPH == 1)
-    if(Mode(0) != 9 && Mode(0) != 10){                         // тут внутри несколько таймеров для пересчёта графиков (за час, за день и прогноз)
-      modesTick();
-    }
-    #else
-      if(Mode(0) == 0){
-        brightnessControl();
-      }
-    #endif
+    switch (Mode(0)) {
+      case 0:
+        #if (SENSORS == 1)
 
-    if (Mode(0) == 0) {                                  // в режиме "главного экрана"
-      #if (SENSORS == 1)
-        if (drawSensorsTimer.isReady()) {
-          drawSensors();  // обновляем показания датчиков на дисплее с периодом SENS_TIME
-          drawFlags();
-          // Serial.println("Sensors updated");
-      }
-      #endif
+          #if (GRAPH == 1)
+            if(Mode(0) != 9 && Mode(0) != 10){                         // тут внутри несколько таймеров для пересчёта графиков (за час, за день и прогноз)
+            modesTick();
+          }
+            #else
+              brightnessControl();
+          #endif
+
+          if (drawSensorsTimer.isReady()) {
+            drawSensors();  // обновляем показания датчиков на дисплее с периодом SENS_TIME
+            drawFlags();
+            // Serial.println("Sensors updated");
+          }
+        #endif
       
-      if (Enc_IsDouble()) Mode(9);
-    } 
-    else if(Mode(0) == 9){
-      #if (ALARM == 1)
-        alarmTuning();
-      #else
-        draw_main_disp();
-      #endif
-    }
-    else if(Mode(0) == 10){
-      #if (OPTION == 1)
-        options();
-      #else
-        draw_main_disp();
-      #endif
-    }
-      else {  
+        #if (ALARM == 1)
+          if (Enc_IsDouble()) Mode(9);
+          if (!alarmIs_ON) if(Enc_IsHolded()) Mode(10);
+        #else if
+          if(Enc_IsHolded()) Mode(10);
+        #endif
+        break;
+      case 9:
+        #if (ALARM == 1)
+          alarmTuning();
+        #else
+          draw_main_disp();
+        #endif
+        break;
+      case 10:
+        #if (OPTION == 1)
+          options();
+        #else
+          draw_main_disp();
+        #endif
+        break;
+      default:
         #if (SENSORS == 1 && GRAPH == 1)                                        // в любом из графиков
           if (plotTimer.isReady()) redrawPlot();          // перерисовываем график
         #endif
-      }
-  #else
-    #if (SENSORS == 1)
-      if (drawSensorsTimer.isReady()) drawSensors();
+        break;
+      }                                  // в режиме "главного экрана"
+     
+    #else
+      #if (SENSORS == 1)
+        if (drawSensorsTimer.isReady()) drawSensors();
+      #endif
     #endif
-  #endif
 }

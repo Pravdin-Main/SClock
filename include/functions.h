@@ -6,7 +6,7 @@
 //-------------------------- Modules ----------------------
 
 #define CLOCK 1       //1 - clock type 1; 2 - clock type 2; 3 - clock type 3; 4 - clock type 4
-#define ALARM 1       //0 - alarm module OFF; 1 - alarm module ON
+#define ALARM 0       //0 - alarm module OFF; 1 - alarm module ON
 #define OPTION 1      //0 - options OFF; 1 - options ON
 #define SENSORS 1     //0 - sensors OFF; 1 - sensors ON
 #define SENS_CO2 1    //0 - CO2 sensor OFF; 1 - CO2 sensor ON
@@ -18,15 +18,16 @@
 //---------------------------------------------------------
 
 #define EEPROM_KEY_ADDR 0
-#define EEPROM_KEY 150
+#define EEPROM_KEY 185
 #define DEBUG 0             // вывод на дисплей лог инициализации датчиков при запуске. Для дисплея 1602 не работает! Но дублируется через порт!
-#define RESET_CLOCK 1       // сброс часов на время загрузки прошивки (для модуля с несъёмной батарейкой). Не забудь поставить 0 и прошить ещё раз!
+#define RESET_CLOCK 0       // сброс часов на время загрузки прошивки (для модуля с несъёмной батарейкой). Не забудь поставить 0 и прошить ещё раз!
 
 // Общие настройки
 #define DISP_MODE 1         // в правом верхнем углу отображать: 0 - год, 1 - день недели, 2 - секунды
 #define DISPLAY_TYPE 1      // тип дисплея: 1 - 2004 (большой), 0 - 1602 (маленький)
 #define DISPLAY_ADDR 0x27   // адрес платы дисплея: 0x27 или 0x3f. Если дисплей не работает - смени адрес! На самом дисплее адрес не указан
-#define CURSOR 62           // Cursor's symbol
+#define CURSOR_L 62           // Cursor's symbol for left side
+#define CURSOR_R 60           // Cursor's symbol for right side
 #define DELAY 1500          // Delay of displaying "done" message
 
 #define WEEK_LANG 0         // язык дня недели: 0 - английский, 1 - русский (транслит)
