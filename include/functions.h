@@ -18,7 +18,7 @@
 //---------------------------------------------------------
 
 #define EEPROM_KEY_ADDR 0
-#define EEPROM_KEY 185
+#define EEPROM_KEY 190
 #define DEBUG 0             // вывод на дисплей лог инициализации датчиков при запуске. Для дисплея 1602 не работает! Но дублируется через порт!
 #define RESET_CLOCK 0       // сброс часов на время загрузки прошивки (для модуля с несъёмной батарейкой). Не забудь поставить 0 и прошить ещё раз!
 
@@ -216,6 +216,7 @@ static const char *dayNames[]  = {
   void cursor();
   bool cursor_get_pos();
   void opt_save();
+  void opt_ref();
   void opt_change(bool dir);
   void opt_eeprom_save();
   void opt_eeprom_dwl();

@@ -72,14 +72,14 @@ void debug_start(){
     }
 #else
 
-    #if (CO2_SENSOR == 1)
-        mhz19.begin(MHZ_TX, MHZ_RX);
-        mhz19.setAutoCalibration(false);
-    #endif
+    // #if (CO2_SENSOR == 1)
+    //     mhz19.begin(MHZ_TX, MHZ_RX);
+    //     mhz19.setAutoCalibration(false);
+    // #endif
 
-    rtc.begin();
-    bme.begin();
-    bme.setTempCal(-1);
+    // rtc.begin();
+    // bme.begin();
+    // bme.setTempCal(-1);
     /*bme.setSampling(Adafruit_BME280::MODE_FORCED,
         Adafruit_BME280::SAMPLING_X1, // temperature
         Adafruit_BME280::SAMPLING_X1, // pressure
