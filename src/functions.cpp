@@ -14,6 +14,8 @@ static bool ch_flg_min2 = true;
 static bool ch_flg_day = true;
 static bool ch_flg_month = true;
 static bool ch_flg_week = true;
+const static String off_msg = "OFF";
+const static String on_msg = "ON";
 RTC_DS3231 rtc;
 DateTime now;
 
@@ -44,8 +46,6 @@ bool firstStartFlag = false;
   static uint8_t cursor_pos = 1;
   print opt,lst_opt;
   const static String error_msg = "error";
-  const static String off_msg = "OFF";
-  const static String on_msg = "ON";
   const static String hold_msg = "hold";
   const static String wait_msg = "wait";
   const static String click_msg = "click";
@@ -103,6 +103,7 @@ bool firstStartFlag = false;
 #endif
 
 bool brsHandControl = false;
+static bool zoom_LED = false;
 
 #if (DISPLAY_TYPE == 1)
 LiquidCrystal_I2C lcd(DISPLAY_ADDR, 20, 4);
@@ -117,7 +118,7 @@ GButton button(BTN_PIN, LOW_PULL, NORM_OPEN);
 GTimer_ms drawDown_param(1500);
 GTimer_ms drawUp_param(400);
 GTimer_ms backToMain(20000);
-GTimer_ms ZoomLight(ZOOM_LED);
+GTimer_ms brs_Ref(ZOOM_LED);
 
 // цифры
 uint8_t LT[8] = {0b00111,  0b01111,  0b11111,  0b11111,  0b11111,  0b11111,  0b11111,  0b11111};
@@ -410,9 +411,7 @@ void loadClock() {
   lcd.createChar(7, LMB);
 }
 
-void setLED(uint8_t color) {
-  if(analogRead(PHOTO) > BRIGHT_THRESHOLD && dispCO2 >= CO2_YELLOW_THRESHOLD){}
-    else{
+void setLED(uint8_t color, uint8_t lbd, uint8_t lbn) {
       switch (color) {    // 0 выкл, 1 красный, 2 зелёный, 3 синий (или жёлтый)
         case 0:
           if (!LED_MODE) {
@@ -427,101 +426,115 @@ void setLED(uint8_t color) {
             }
           break;
         case 1: 
-          if(analogRead(PHOTO) < BRIGHT_THRESHOLD) analogWrite(LED_R, LED_brs_night.param);
-            else{ analogWrite(LED_R, LED_brs_day.param); }
+          if(analogRead(PHOTO) < BRIGHT_THRESHOLD) analogWrite(LED_R, lbn);
+            else{ analogWrite(LED_R, lbd); }
+          analogWrite(LED_G, 0);
+          analogWrite(LED_B, 0);
           break;
         case 2: 
-          if(analogRead(PHOTO) < BRIGHT_THRESHOLD) analogWrite(LED_G, LED_brs_night.param);
-            else { analogWrite(LED_G, LED_brs_day.param); }
+          if(analogRead(PHOTO) < BRIGHT_THRESHOLD) analogWrite(LED_G, lbn);
+            else { analogWrite(LED_G, lbd); }
+          analogWrite(LED_R, 0);
+          analogWrite(LED_B, 0);
           break;
         case 3:
           if(analogRead(PHOTO) < BRIGHT_THRESHOLD){ 
-            if (!BLUE_YELLOW) analogWrite(LED_B, LED_brs_night.param);
+            if (!BLUE_YELLOW) analogWrite(LED_B, lbn);
               else {
-                if(LED_brs_night.param <= 50) analogWrite(LED_R, 0);
-                  else {  analogWrite(LED_R, LED_brs_night.param - 50); }    // приглушаем красный
-                analogWrite(LED_G, LED_brs_night.param);
+                if(lbn <= 50) analogWrite(LED_R, 0);
+                  else {  analogWrite(LED_R, lbn - 50); }    // приглушаем красный
+                analogWrite(LED_G, lbn);
               }
           }
             else{
-              if (!BLUE_YELLOW) analogWrite(LED_B, LED_brs_day.param);
+              if (!BLUE_YELLOW) analogWrite(LED_B, lbd);
                 else {
-                  if(LED_brs_day.param <= 50) analogWrite(LED_R, 0);
-                    else {  analogWrite(LED_R, LED_brs_day.param - 50); }    // приглушаем красный
-                  analogWrite(LED_G, LED_brs_day.param);
+                  if(lbd <= 50) analogWrite(LED_R, 0);
+                    else {  analogWrite(LED_R, lbd - 50); }    // приглушаем красный
+                  analogWrite(LED_G, lbd);
                 }
             }
+          analogWrite(LED_R, 0);
+          analogWrite(LED_G, 0);
           break;
         default:
           break;
       }
-    }
 }
 
 void brightnessControl(){
   checkInput();
-  brsHandControl = true;
   if(enc.isRight()){
-    if(analogRead(PHOTO) < BRIGHT_THRESHOLD){
-      D_brs_night.param += LCD_BRIGHT_STEP;
-      D_brs_night.param = constrain(D_brs_night.param, 0, 255);
-    }
-      else{
-        D_brs_day.param += LCD_BRIGHT_STEP;
-        D_brs_day.param = constrain(D_brs_day.param, 0, 255);
+    #if (OPTION)
+      if(analogRead(PHOTO) < BRIGHT_THRESHOLD){
+        D_brs_night.param += LCD_BRIGHT_STEP;
+        D_brs_night.param = constrain(D_brs_night.param, 0, 255);
       }
-    brightnessRef();
+        else{
+          D_brs_day.param += LCD_BRIGHT_STEP;
+          D_brs_day.param = constrain(D_brs_day.param, 0, 255);
+        }
+      brightnessRef(D_brs_day.param, D_brs_night.param, LED_brs_day.param, LED_brs_night.param);
+      brsHandControl = true;
+    #endif
   }
 
   if(enc.isLeft()){
-    if(analogRead(PHOTO) < BRIGHT_THRESHOLD){
-      D_brs_night.param -= LCD_BRIGHT_STEP;
-      D_brs_night.param = constrain(D_brs_night.param, 0, 255);
-    }
-      else{
-        D_brs_day.param -= LCD_BRIGHT_STEP;
-        D_brs_day.param = constrain(D_brs_day.param, 0, 255);
+    #if (OPTION)
+      if(analogRead(PHOTO) < BRIGHT_THRESHOLD){
+        D_brs_night.param -= LCD_BRIGHT_STEP;
+        D_brs_night.param = constrain(D_brs_night.param, 0, 255);
       }
-    brightnessRef();
+        else{
+          D_brs_day.param -= LCD_BRIGHT_STEP;
+          D_brs_day.param = constrain(D_brs_day.param, 0, 255);
+        }
+      brightnessRef(D_brs_day.param, D_brs_night.param, LED_brs_day.param, LED_brs_night.param);
+      brsHandControl = true;
+    #endif
   }
   
-  static uint8_t LCD_brs_night_cache;
-  static uint8_t LCD_brs_day_cache;
+  // static uint8_t LCD_brs_night_cache;
+  // static uint8_t LCD_brs_day_cache;
 
   if(button.isClick()){
-    ZoomLight.reset();
-    ZoomLight.start();
-    if(analogRead(PHOTO) < BRIGHT_THRESHOLD){
-      LCD_brs_night_cache = D_brs_night.param;
-      D_brs_night.param = LCD_BRIGHT_MAX;
-    }
-      else{
-        LCD_brs_day_cache = D_brs_day.param;
-        D_brs_day.param = LCD_BRIGHT_MAX;
+    brs_Ref.reset();
+    zoom_LED = true;
+    
+    #if (OPTION)
+      if(analogRead(PHOTO) < BRIGHT_THRESHOLD){
+        brightnessRef(D_brs_day.param, LCD_BRIGHT_MAX, LED_brs_day.param, LED_brs_night.param);
       }
-    brightnessRef();
+        else{
+          brightnessRef(LCD_BRIGHT_MAX, D_brs_night.param, LED_brs_day.param, LED_brs_night.param);
+        }
+    #endif
   }
 
-  if(ZoomLight.isReady()){
-    ZoomLight.stop();
-    D_brs_night.param = LCD_brs_night_cache;
-    D_brs_day.param = LCD_brs_day_cache;
-    brightnessRef();
+  if(brs_Ref.isReady()){
+    if(zoom_LED){ 
+      zoom_LED = false;
+      // D_brs_night.param = LCD_brs_night_cache;
+      // D_brs_day.param = LCD_brs_day_cache;
+    }
+    #if (OPTION)
+      brightnessRef(D_brs_day.param, D_brs_night.param, LED_brs_day.param, LED_brs_night.param);
+    #endif
   }
 }
 
-void brightnessRef() {
+void brightnessRef(uint8_t dbd, uint8_t dbn, uint8_t lbd, uint8_t lbn) {
   if (analogRead(PHOTO) < BRIGHT_THRESHOLD) {   // если темно
-    analogWrite(BACKLIGHT, D_brs_night.param);
+    analogWrite(BACKLIGHT, dbn);
   }
    else {                                      // если светло
-    analogWrite(BACKLIGHT, D_brs_day.param);
+    analogWrite(BACKLIGHT, dbd);
    }
-    #if (SENSORS == 1 && SENS_CO2 == 1)
-      if (dispCO2 < CO2_GREEN_THRESHOLD) setLED(2);
-      else if (dispCO2 < CO2_YELLOW_THRESHOLD) setLED(3);
-      else if (dispCO2 >= CO2_YELLOW_THRESHOLD) setLED(1);
-    #endif
+  #if (SENSORS == 1 && SENS_CO2 == 1)
+    if (dispCO2 < CO2_GREEN_THRESHOLD) setLED(2, lbd, lbn);
+    else if (dispCO2 < CO2_YELLOW_THRESHOLD) setLED(3, lbd, lbn);
+    else if (dispCO2 >= CO2_YELLOW_THRESHOLD) setLED(1, lbd, lbn);
+  #endif
 }
 
 void checkInput(){
@@ -578,9 +591,11 @@ void readSensors() {
       ch_flg_co2 = true;
     }
 
-    if (dispCO2 < CO2_GREEN_THRESHOLD) setLED(2);
-    else if (dispCO2 < CO2_YELLOW_THRESHOLD) setLED(3);
-    else if (dispCO2 >= CO2_YELLOW_THRESHOLD) setLED(1);
+    #if (OPTION)
+      if (dispCO2 < CO2_GREEN_THRESHOLD) setLED(2, LED_brs_day.param, LED_brs_night.param);
+      else if (dispCO2 < CO2_YELLOW_THRESHOLD) setLED(3, LED_brs_day.param, LED_brs_night.param);
+      else if (dispCO2 >= CO2_YELLOW_THRESHOLD) setLED(1, LED_brs_day.param, LED_brs_night.param);
+    #endif
   #endif
 }
 
@@ -875,10 +890,16 @@ void clockTick() {
   if (mode == 0) drawDots(7, 0, dotFlag);
   // #if (SENSORS == 1 && SENS_CO2 == 1)
   // if (dispCO2 >= CO2_YELLOW_THRESHOLD) {
-  //   if (dotFlag) setLED(1);
-  //   else setLED(0);
+  //   if (dotFlag) setLED(1, LED_brs_day.param, LED_brs_night.param);
+  //   else setLED(0, LED_brs_day.param, LED_brs_night.param);
   // }
   // #endif
+}
+
+void space_prt(uint8_t q){
+  for(uint8_t x = 0; x < q; x++){
+    lcd.print(" ");
+  }
 }
 
 //---------------------ALARM--------------------------------------------------
@@ -1032,7 +1053,7 @@ void drawAlarmClock(uint8_t hours, uint8_t minutes, uint8_t x, uint8_t y, bool d
 
   switch (set_alarm){
     case 1:
-      lcd.setCursor(5, 2); lcd.print(CURSOR_R;
+      lcd.setCursor(5, 2); lcd.print(CURSOR_R);
       lcd.setCursor(12, 2); space_prt(1);
       lcd.setCursor(19, 2); space_prt(1);
       break;
@@ -1301,7 +1322,7 @@ void debug_start(){
         boolean status = true;
         lcd.clear();
 
-        setLED(1);
+        setLED(1, LED_brs_day.param, LED_brs_night.param);
 
     #if (SENS_CO2 == 1)
         lcd.setCursor(0, 0);
@@ -1321,7 +1342,7 @@ void debug_start(){
         }
     #endif
 
-    setLED(2);
+    setLED(2, LED_brs_day.param, LED_brs_night.param);
     lcd.setCursor(0, 1);
     lcd.print(F("RTC... "));
     Serial.print(F("RTC... "));
@@ -1335,7 +1356,7 @@ void debug_start(){
         status = false;
     }
 
-    setLED(3);
+    setLED(3, LED_brs_day.param, LED_brs_night.param);
     lcd.setCursor(0, 2);
     lcd.print(F("BME280... "));
     Serial.print(F("BME280... "));
@@ -1349,7 +1370,7 @@ void debug_start(){
         status = false;
     }
 
-    setLED(0);
+    setLED(0, LED_brs_day.param, LED_brs_night.param);
     lcd.setCursor(0, 3);
     if(status) {
         lcd.print(F("All good"));
@@ -1614,24 +1635,28 @@ void opt_change(bool dir){
         else { --D_brs_day.d_param; }
         D_brs_day.d_param = constrain(D_brs_day.d_param, 0, 100);
         opt.s4_c2 = D_brs_day.d_param;
+        brightnessRef(map(D_brs_day.d_param, 0, 100, 0, 256), map(D_brs_night.d_param, 0, 100, 0, 256), map(LED_brs_day.d_param, 0, 100, 0, 256), map(LED_brs_night.d_param, 0, 100, 0, 256));
       break;
     case 105:
       if(dir) ++D_brs_night.d_param;
         else { --D_brs_night.d_param; }
       D_brs_night.d_param = constrain(D_brs_night.d_param, 0, 100);
       opt.s1_c2 = D_brs_night.d_param;
+      brightnessRef(map(D_brs_day.d_param, 0, 100, 0, 256), map(D_brs_night.d_param, 0, 100, 0, 256), map(LED_brs_day.d_param, 0, 100, 0, 256), map(LED_brs_night.d_param, 0, 100, 0, 256));
       break;
     case 106:
       if(dir) ++LED_brs_day.d_param;
        else { --LED_brs_day.d_param; }
       LED_brs_day.d_param = constrain(LED_brs_day.d_param, 0, 100);
       opt.s2_c2 = LED_brs_day.d_param;
+      brightnessRef(map(D_brs_day.d_param, 0, 100, 0, 256), map(D_brs_night.d_param, 0, 100, 0, 256), map(LED_brs_day.d_param, 0, 100, 0, 256), map(LED_brs_night.d_param, 0, 100, 0, 256));
       break;
     case 107:
       if(dir) ++LED_brs_night.d_param;
         else { --LED_brs_night.d_param; }
       LED_brs_night.d_param = constrain(LED_brs_night.d_param, 0, 100);
       opt.s3_c2 = LED_brs_night.d_param;
+      brightnessRef(map(D_brs_day.d_param, 0, 100, 0, 256), map(D_brs_night.d_param, 0, 100, 0, 256), map(LED_brs_day.d_param, 0, 100, 0, 256), map(LED_brs_night.d_param, 0, 100, 0, 256));
       break;
     case 108:
       if(dir) ++Display_mode.d_param;
@@ -1771,7 +1796,7 @@ bool cursor_get_pos(){
 
   if(enc.isHolded()){
     if(cursor_pos >= 100){
-      if(cursor_pos == 102, 103, 110){
+      if(cursor_pos == 102 || cursor_pos == 103 || cursor_pos == 110){
         switch (cursor_pos){
           case 102:
             #if (ALARM == 1)
@@ -1794,8 +1819,9 @@ bool cursor_get_pos(){
             break;
         }
       }
-      else if(cursor_pos == 101 || (cursor_pos >= 104 && cursor_pos <= 109)){
+      if(cursor_pos == 101 || (cursor_pos >= 104 && cursor_pos <= 109)){
         opt_save();
+        brightnessRef(D_brs_day.param, D_brs_night.param, LED_brs_day.param, LED_brs_night.param);
         cursor_pos -= 100;
         cursor_prt();
         return true;
@@ -1848,6 +1874,7 @@ bool cursor_get_pos(){
               default:
                 break;
               }
+            brightnessRef(D_brs_day.param, D_brs_night.param, LED_brs_day.param, LED_brs_night.param);
             cursor_pos -= 100;
             cursor_prt();
             return true;
@@ -2206,12 +2233,6 @@ void cursor_prt(){
       lcd.print(char(CURSOR_R));
     }
     last_curs_pos = cursor_pos;
-  }
-}
-
-void space_prt(uint8_t q){
-  for(uint8_t x = 0; x < q; x++){
-    lcd.print(" ");
   }
 }
 

@@ -6,7 +6,7 @@
 //-------------------------- Modules ----------------------
 
 #define CLOCK 1       //1 - clock type 1; 2 - clock type 2; 3 - clock type 3; 4 - clock type 4
-#define ALARM 0       //0 - alarm module OFF; 1 - alarm module ON
+#define ALARM 1       //0 - alarm module OFF; 1 - alarm module ON
 #define OPTION 1      //0 - options OFF; 1 - options ON
 #define SENSORS 1     //0 - sensors OFF; 1 - sensors ON
 #define SENS_CO2 1    //0 - CO2 sensor OFF; 1 - CO2 sensor ON
@@ -92,8 +92,8 @@ void drawClock(uint8_t hours, uint8_t minutes, uint8_t x, uint8_t y);
 void drawData();
 void loadClock();
 
-void setLED(uint8_t color);
-void brightnessRef();
+void setLED(uint8_t color, uint8_t lbd, uint8_t lbn);
+void brightnessRef(uint8_t dbd, uint8_t dbn, uint8_t lbd, uint8_t lbn);
 void brightnessControl();
 
 void clockTick();
