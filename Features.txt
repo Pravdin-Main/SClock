@@ -4,10 +4,11 @@
 2 Power safe
 3 Add dysplay mode "Option" --- in progress
 4 New algorithm without "blinking" --- DONE
-5 Add "Night and Bright" mode --- in progress
+5 Add "Night and Bright" mode --- DONE
 6 Cut off the bootloader - it's can free 2 KB
 7 Add display blinking
 8 Add module type --- DONE
+9 Make a time tuning option
 -----------------------------------------
 
 \\LIST OF MODULS
@@ -21,23 +22,34 @@
 
 \\OPTION'S DISPLAY STRUCTUR
 
-1 |>Night&Bright ON/OFF|    /SAVE!|     bool
+1 |>Night mode   ON/OFF|    /SAVE!|     bool
 2 |Alarms OFF      hold|    /DONE!|     void
 3 |Alarms RST      hold|    /DONE!|     void
-4 |Disp brs day     100|    /SAVE!|     uint8_t
-5 |Disp brs nigth   100|    /SAVE!|     uint8_t
-6 |LED brs day      100|    /SAVE!|     uint8_t
-7 |LED brs nigth    100|    /SAVE!|     uint8_t
+4 |Disp day         100|    /SAVE!|     uint8_t
+5 |Disp nigth       100|    /SAVE!|     uint8_t
+6 |LED day          100|    /SAVE!|     uint8_t
+7 |LED nigth        100|    /SAVE!|     uint8_t
 8 |Display mode   blink|    /SAVE!|     uint8_t        /slow    /OFF
 9 |Volume           100|    /SAVE!|     uint8_t
 10|Debug start     hold|                void
 11|Up             click|                void
 -------------------------------------------
 
-\\OPTIONS DESCRIPTION
+\\OPTION'S DESCRIPTION
 
-"Night&Bright" mode - display brightness OFF and LED brigthness SUPER LOW between 23:00 & 7:00
-                    - display brigthness LOW and LED brigthness LOW betwenn 7:00 & 23:00
+"Night mode"   - if it's set to OFF display and LED brigthness not changing if it's dark
+"Alarms OFF"   - switch OFF all Alarms
+"Alarms RST"   - set to zero all Alarms
+"Disp day"     - tuning of display brightness when it's lightly
+"Disp nigth"   - tuning of display brightness when it's dark
+"LED day"      - tuning of LED brightness when it's lightly
+"LED night"    - tuning of LED brightness when it's dark
+"Display mode" - blink - when alarm is ON then display is blinking
+               - slow  - when alarm is ON then display is pulsing
+               - OFF   - when alarm is ON then do nothing
+"Volume"       - tuning of bazzer Volume
+"Debug start"  - starting debug mode
+"Up"           - back to top of the option screen
 --------------------------------------------
 
 \\INSTANTLY GOAL:

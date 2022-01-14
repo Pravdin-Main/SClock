@@ -39,7 +39,6 @@
 */
 
 #include "main.h"
-
 //------------------------SETUP-----------------------
 
 void setup() {
@@ -74,12 +73,12 @@ void setup() {
 
 //---------------------DEBUG END----------------------------
 
-  draw_main_disp(); // Взять текущее время и показания с датчиков и вывести на экран
-  // Serial.println("Sensors inition is DONE");
-
   #if (SENSORS == 1)
     init_sens();
+    // Serial.println("Sensors inition is DONE");
   #endif
+
+  draw_main_disp(); // Update time and sensors and display it
 }
 
 //----------------------LOOP--------------------------
@@ -91,7 +90,7 @@ void loop() {
 
   #if (SENSORS == 1)
     if (sensorsTimer.isReady()) {
-      readSensors();             // читаем показания датчиков с периодом SENS_TIME
+      readSensors();             // Read sensors with frequency of SENS_TIME
       // Serial.println("Check sensors is DONE");
   }
   #endif
@@ -108,7 +107,7 @@ void loop() {
     if (alarmIs_ON){ 
       alarmStart(alarm_s);
       // Serial.print("Alarm --- "); Serial.println(alarm_s);
-      if (Enc_IsHolded()){
+      if (Enc_IsDouble()){
         alarmStop();
         // Serial.println("Alarm stopped");
         alarmIs_ON = false;
@@ -141,11 +140,10 @@ void loop() {
             // Serial.println("Sensors updated");
           }
         #endif
-      
         #if (ALARM == 1)
-          if (Enc_IsDouble()) Mode(9);
-          if (!alarmIs_ON) if(Enc_IsHolded()) Mode(10);
-        #else if
+          if (Enc_IsDouble() && !alarmIs_ON) Mode(9);
+          if(Enc_IsHolded()) Mode(10);
+        #else
           if(Enc_IsHolded()) Mode(10);
         #endif
         break;
