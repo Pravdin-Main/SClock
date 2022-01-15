@@ -30,17 +30,6 @@ bool dotFlag;
 bool firstStartFlag = false;
 
 #if (OPTION == 1)
-  // option N_B;
-  // option A_OFF;
-  // option A_RST;
-  // option D_brs_day;
-  // option D_brs_night;
-  // option LED_brs_day;
-  // option LED_brs_night;
-  // option Display_mode;
-  // option vol;
-  // option debug;
-  // option up;
   option N_B, A_OFF, A_RST, D_brs_day, D_brs_night, LED_brs_day, LED_brs_night, Display_mode, vol, debug, up;
   static bool opt_status;   // 0 - N_B, 1 - A_OFF, 2 - A_RST, 3 - debug; 4 - display_mode
   static uint8_t cursor_pos = 1;
@@ -50,7 +39,7 @@ bool firstStartFlag = false;
   const static String wait_msg = "wait";
   const static String click_msg = "click";
   const static String blink_msg = "blink";
-  const static String slow_msg = "slow";
+  const static String slow_msg = "pulse";
 #endif
 
 #if (SENSORS == 1)
@@ -118,6 +107,8 @@ GTimer_ms drawDown_param(1500);
 GTimer_ms drawUp_param(400);
 GTimer_ms backToMain(20000);
 GTimer_ms brs_Ref(ZOOM_LED);
+GTimer_ms disp_pulse(50);
+GTimer_ms disp_blink(1000);
 
 // цифры
 uint8_t LT[8] = {0b00111,  0b01111,  0b11111,  0b11111,  0b11111,  0b11111,  0b11111,  0b11111};
@@ -330,8 +321,9 @@ void drawClock(uint8_t hours, uint8_t minutes, uint8_t x, uint8_t y) {
     space_prt(3);
     lcd.setCursor(x, y + 1);
     space_prt(3);
-    if (hours / 10 == 0) drawDig(hours / 10, x, y);
-      else drawDig(hours / 10, x, y);
+    drawDig(hours / 10, x, y);
+    // if (hours / 10 == 0) drawDig(hours / 10, x, y);
+    //   else drawDig(hours / 10, x, y);
     ch_flg_hr1 = false;
   }
   
@@ -412,6 +404,7 @@ void loadClock() {
 }
 
 void setLED(uint8_t color, uint8_t day, uint8_t night) {
+    #if(OPTION)
       switch (color) {    // 0 OFF, 1 RED, 2 GREEN, 3 BLUE (or YELLOW)
         case 0:
           // analogWrite(LED_R, OFF_LED);
@@ -463,6 +456,59 @@ void setLED(uint8_t color, uint8_t day, uint8_t night) {
         default:
           break;
       }
+      #else
+        switch (color) {    // 0 OFF, 1 RED, 2 GREEN, 3 BLUE (or YELLOW)
+          case 0:
+            // analogWrite(LED_R, OFF_LED);
+            analogWrite(LED_G, OFF_LED);
+            analogWrite(LED_B, OFF_LED);
+            break;
+          case 1:
+            // (analogRead(PHOTO) < BRIGHT_THRESHOLD) ? analogWrite(LED_R, night) : analogWrite(LED_R, day);
+            // analogWrite(LED_G, OFF_LED);
+            // analogWrite(LED_B, OFF_LED);
+            if(analogRead(PHOTO) < BRIGHT_THRESHOLD){
+              analogWrite(LED_B, night);
+              analogWrite(LED_G, night);
+            }
+              else{
+                analogWrite(LED_B, day);
+                analogWrite(LED_G, day);
+              }
+            break;
+          case 2:
+            (analogRead(PHOTO) < BRIGHT_THRESHOLD) ? analogWrite(LED_G, night) : analogWrite(LED_G, day);
+            // analogWrite(LED_R, OFF_LED);
+            analogWrite(LED_B, OFF_LED);
+            break;
+          case 3:
+            if(analogRead(PHOTO) < BRIGHT_THRESHOLD) { 
+              #if (!BLUE_YELLOW)
+                analogWrite(LED_B, night);
+                // analogWrite(LED_R, OFF_LED);
+                analogWrite(LED_G, OFF_LED);
+              #else 
+                analogWrite(LED_R, night);
+                analogWrite(LED_G, night);
+              #endif
+            }
+              else{
+                #if (!BLUE_YELLOW)
+                  analogWrite(LED_B, day);
+                  analogWrite(LED_R, OFF_LED);
+                  analogWrite(LED_G, OFF_LED);
+                #else 
+                  analogWrite(LED_R, day);
+                  analogWrite(LED_G, day);
+                #endif
+              }
+            // analogWrite(LED_R, OFF_LED);
+            // analogWrite(LED_G, OFF_LED);
+            break;
+          default:
+            break;
+        }
+      #endif
 }
 
 void brightnessControl(){
@@ -525,6 +571,7 @@ void brightnessControl(){
   }
 }
 
+#if (OPTION)
 void brightnessRef(uint8_t dbd, uint8_t dbn, uint8_t lbd, uint8_t lbn) {
   if (analogRead(PHOTO) < BRIGHT_THRESHOLD && N_B.param) {   // if dark and Night Mode is ON
     analogWrite(BACKLIGHT, dbn);
@@ -538,6 +585,7 @@ void brightnessRef(uint8_t dbd, uint8_t dbn, uint8_t lbd, uint8_t lbn) {
     else if (dispCO2 >= CO2_YELLOW_THRESHOLD) setLED(1, lbd, lbn);
   #endif
 }
+#endif
 
 void checkInput(){
   button.tick();
@@ -1440,49 +1488,22 @@ void EEPROM_init(){
 
         #if (OPTION == 1)
           opt_status = OPTION_DT;
-          // option N_B {1, bitRead(opt_status, 0), bitRead(opt_status, 0), 1, optNames[0]};
           N_B.id = 1; N_B.param = bitRead(opt_status, 0); N_B.d_param = bitRead(opt_status, 0);
-          N_B.disp_pos = 1; N_B.name = optNames[0];
-          Serial.println("Opt_1: " + (String)N_B.id + " " + N_B.name + " " + (String)N_B.param);
-          // option A_OFF {2, bitRead(opt_status, 1), bitRead(opt_status, 1), 2, optNames[1]};
           A_OFF.id = 2; A_OFF.param = bitRead(opt_status, 1); A_OFF.d_param = bitRead(opt_status, 1);
-          A_OFF.disp_pos = 2; A_OFF.name = optNames[1];
-          // option A_RST {3, bitRead(opt_status, 2), bitRead(opt_status, 2), 3, optNames[2]};
           A_RST.id = 3; A_RST.param = bitRead(opt_status, 2); A_RST.d_param = bitRead(opt_status, 2);
-          A_RST.disp_pos = 3; A_RST.name = optNames[2];
-          // option D_brs_day {4, LCD_BRIGHT_MAX, map(LCD_BRIGHT_MAX, 0, 255, 0, 100), 4, optNames[3]};
           D_brs_day.id = 4; D_brs_day.param = LCD_BRIGHT_MAX; D_brs_day.d_param = map(LCD_BRIGHT_MAX, 0, 255, 0, 100);
-          D_brs_day.disp_pos = 4; D_brs_day.name = optNames[3];
-          // option D_brs_night {5, LCD_BRIGHT_MIN, map(LCD_BRIGHT_MIN, 0, 255, 0, 100), 5, optNames[4]};
           D_brs_night.id = 5; D_brs_night.param = LCD_BRIGHT_MIN; D_brs_night.d_param = map(LCD_BRIGHT_MIN, 0, 255, 0, 100);
-          D_brs_night.disp_pos = 5; D_brs_night.name = optNames[4];
           #if(LED_MODE == 0)
-            // option LED_brs_day {6, LED_BRIGHT_MAX, map(LED_BRIGHT_MAX, 0, 255, 0, 100), 6, optNames[5]};
             LED_brs_day.id = 6; LED_brs_day.param = LCD_BRIGHT_MAX; LED_brs_day.d_param = map(LCD_BRIGHT_MAX, 0, 255, 0, 100);
-            LED_brs_day.disp_pos = 6; LED_brs_day.name = optNames[5];
-            // option LED_brs_night {7, LED_BRIGHT_MIN, map(LED_BRIGHT_MIN, 0, 255, 0, 100), 7, optNames[6]};
             LED_brs_night.id = 7; LED_brs_night.param = LCD_BRIGHT_MIN; LED_brs_night.d_param = map(LCD_BRIGHT_MIN, 0, 255, 0, 100);
-            LED_brs_night.disp_pos = 7; LED_brs_night.name = optNames[6];
           #else
-            // option LED_brs_day {6,(255 - LED_BRIGHT_MAX),(255 - LED_BRIGHT_MAX), 6, optNames[5]};
             LED_brs_day.id = 6; LED_brs_day.param = 255 - LCD_BRIGHT_MAX; LED_brs_day.d_param = map(255 - LCD_BRIGHT_MAX, 0, 255, 0, 100);
-            LED_brs_day.disp_pos = 6; LED_brs_day.name = optNames[5];
-            // option LED_brs_night {7, (255 - LED_BRIGHT_MIN),(255 - LED_BRIGHT_MIN), 7, optNames[6]};
             LED_brs_night.id = 7; LED_brs_night.param = 255 - LCD_BRIGHT_MIN; LED_brs_night.d_param = map(255 - LCD_BRIGHT_MIN, 0, 255, 0, 100);
-            LED_brs_night.disp_pos = 7; LED_brs_night.name = optNames[6];
           #endif
-          // option Display_mode {8, bitRead(opt_status, 4), bitRead(opt_status, 4), 8, optNames[7]};
           Display_mode.id = 8; Display_mode.param = bitRead(opt_status, 4); Display_mode.d_param = bitRead(opt_status, 4);
-          Display_mode.disp_pos = 8; Display_mode.name = optNames[7];
-          // option vol {9, VOLUME_DT, VOLUME_DT, 9, optNames[8]};
           vol.id = 9; vol.param = VOLUME_DT; vol.d_param = VOLUME_DT;
-          vol.disp_pos = 9; vol.name = optNames[8];
-          // option debug {10, bitRead(opt_status, 3), bitRead(opt_status, 3), 10, optNames[9]};
           debug.id = 10; debug.param = bitRead(opt_status, 3); debug.d_param = bitRead(opt_status, 3);
-          debug.disp_pos = 10; debug.name = optNames[9];
-          // option up {11, false, false, 11, optNames[10]};
           up.id = 11; up.param = false; up.d_param = false;
-          up.disp_pos = 11; up.name = optNames[10];
           opt_eeprom_save();
         #endif
     }
@@ -1490,19 +1511,6 @@ void EEPROM_init(){
         #if (OPTION == 1)
           opt_eeprom_dwl();
         #endif
-
-        // Serial.println("Opt_1: " + (String)N_B.id + " " + N_B.name + " " + (String)N_B.param);
-        // Serial.println("Opt_2: " + (String)A_OFF.id + " " + A_OFF.name + " " + (String)A_OFF.param);
-        // Serial.println("Opt_3: " + (String)A_RST.id + " " + A_RST.name + " " + (String)A_RST.param);
-        // Serial.println("Opt_4: " + (String)D_brs_day.id + " " + D_brs_day.name + " " + (String)D_brs_day.param);
-        // Serial.println("Opt_5: " + (String)D_brs_night.id + " " + D_brs_night.name + " " + (String)D_brs_night.param);
-        // Serial.println("Opt_6: " + (String)LED_brs_day.id + " " + LED_brs_day.name + " " + (String)LED_brs_day.param);
-        // Serial.println("Opt_7: " + (String)LED_brs_night.id + " " + LED_brs_night.name + " " + (String)LED_brs_night.param);
-        // Serial.println("Opt_8: " + (String)Display_mode.id + " " + Display_mode.name + " " + (String)Display_mode.param);
-        // Serial.println("Opt_9: " + (String)vol.id + " " + vol.name + " " + (String)vol.param);
-        // Serial.println("Opt_10: " + (String)debug.id + " " + debug.name + " " + (String)debug.param);
-        // Serial.println("Opt_11: " + (String)up.id + " " + up.name + " " + (String)up.param);
-
 
         #if (ALARM == 1)
           alarm1.getEEPROM(ALARM1_HOUR_ADDR, ALARM1_MIN_ADDR, ALARM1_SOUND_ADDR, ALARM1_STATUS_ADDR);
@@ -1667,7 +1675,7 @@ void opt_change(bool dir){
       break;
     case 108:
       if(dir) (Display_mode.d_param == 2) ? : ++Display_mode.d_param;
-        else (Display_mode.d_param == 1) ? : --Display_mode.d_param;
+        else (Display_mode.d_param == 0) ? : --Display_mode.d_param;
       opt.s4_c2 = Display_mode.d_param;
       break;
     case 109:
@@ -1691,39 +1699,17 @@ void opt_eeprom_save(){
 
 void opt_eeprom_dwl(){
   EEPROM.get(OPTION_STATUS_ADDR, opt_status);
-  // option N_B {1, bitRead(opt_status, 0), bitRead(opt_status, 0), 1, optNames[0]};
   N_B.id = 1; N_B.param = bitRead(opt_status, 0); N_B.d_param = bitRead(opt_status, 0);
-  N_B.disp_pos = 1; N_B.name = optNames[0];
-  // option A_OFF {2, bitRead(opt_status, 1), bitRead(opt_status, 1), 2, optNames[1]};
   A_OFF.id = 2; A_OFF.param = bitRead(opt_status, 1); A_OFF.d_param = bitRead(opt_status, 1);
-  A_OFF.disp_pos = 2; A_OFF.name = optNames[1];
-  // option A_RST {3, bitRead(opt_status, 2), bitRead(opt_status, 2), 3, optNames[2]};
   A_RST.id = 3; A_RST.param = bitRead(opt_status, 2); A_RST.d_param = bitRead(opt_status, 2);
-  A_RST.disp_pos = 3; A_RST.name = optNames[2];
-  // option D_brs_day {4, EEPROM.read(DIS_BRS_DAY_ADDR), map(EEPROM.read(DIS_BRS_DAY_ADDR), 0, 255, 0, 100), 4, optNames[3]};
   D_brs_day.id = 4; D_brs_day.param = EEPROM.read(DIS_BRS_DAY_ADDR); D_brs_day.d_param = map(EEPROM.read(DIS_BRS_DAY_ADDR), 0, 255, 0, 100);
-  D_brs_day.disp_pos = 4; D_brs_day.name = optNames[3];
-  // option D_brs_night {5, EEPROM.read(DIS_BRS_NIGHT_ADDR), map(EEPROM.read(DIS_BRS_NIGHT_ADDR), 0, 255, 0, 100), 5, optNames[4]};
   D_brs_night.id = 5; D_brs_night.param = EEPROM.read(DIS_BRS_NIGHT_ADDR); D_brs_night.d_param = map(EEPROM.read(DIS_BRS_NIGHT_ADDR), 0, 255, 0, 100);
-  D_brs_night.disp_pos = 5; D_brs_night.name = optNames[4];
-  // option LED_brs_day {6, EEPROM.read(RGB_BRS_DAY_ADDR), map(EEPROM.read(RGB_BRS_DAY_ADDR), 0, 255, 0, 100), 6, optNames[5]};
   LED_brs_day.id = 6; LED_brs_day.param = EEPROM.read(RGB_BRS_DAY_ADDR); LED_brs_day.d_param = map(EEPROM.read(RGB_BRS_DAY_ADDR), 0, 255, 0, 100);
-  LED_brs_day.disp_pos = 6; LED_brs_day.name = optNames[5];
-  // option LED_brs_night {7, EEPROM.read(RGB_BRS_NIGHT_ADDR), map(EEPROM.read(RGB_BRS_NIGHT_ADDR), 0, 255, 0, 100), 7, optNames[6]};
   LED_brs_night.id = 7; LED_brs_night.param = EEPROM.read(RGB_BRS_NIGHT_ADDR); LED_brs_night.d_param = map(EEPROM.read(RGB_BRS_NIGHT_ADDR), 0, 255, 0, 100);
-  LED_brs_night.disp_pos = 7; LED_brs_night.name = optNames[6];
-  // option Display_mode {8, bitRead(opt_status, 4), bitRead(opt_status, 4), 8, optNames[7]};
   Display_mode.id = 8; Display_mode.param = bitRead(opt_status, 4); Display_mode.d_param = bitRead(opt_status, 4);
-  Display_mode.disp_pos = 8; Display_mode.name = optNames[7];
-  // option vol {9, EEPROM.read(VOLUME_ADDR), EEPROM.read(VOLUME_ADDR), 9, optNames[8]};
   vol.id = 9; vol.param = EEPROM.read(VOLUME_ADDR); vol.d_param = EEPROM.read(VOLUME_ADDR);
-  vol.disp_pos = 9; vol.name = optNames[8];
-  // option debug {10, bitRead(opt_status, 3), bitRead(opt_status, 3), 10, optNames[9]};
   debug.id = 10; debug.param = bitRead(opt_status, 3); debug.d_param = bitRead(opt_status, 3);
-  debug.disp_pos = 10; debug.name = optNames[9];
-  // option up {11, false, false, 11, optNames[10]};
   up.id = 11; up.param = false; up.d_param = false;
-  up.disp_pos = 11; up.name = optNames[10];  
 }
 
 bool cursor_get_pos(){
@@ -1833,6 +1819,7 @@ bool cursor_get_pos(){
       }
       if(cursor_pos == 101 || (cursor_pos >= 104 && cursor_pos <= 109)){
         opt_save();
+        if(cursor_pos == 108) display_blinking(false);
         brightnessRef(D_brs_day.param, D_brs_night.param, LED_brs_day.param, LED_brs_night.param);
         cursor_pos -= 100;
         cursor_prt();
@@ -1878,6 +1865,7 @@ bool cursor_get_pos(){
               case 108:
                 Display_mode.d_param = Display_mode.param;
                 opt.s4_c2 = Display_mode.d_param;
+                display_blinking(false);
                 break;
               case 109:
                 vol.d_param = vol.param;
@@ -1897,6 +1885,8 @@ bool cursor_get_pos(){
       }
   }
 
+  if(cursor_pos == 108) display_blinking(true);
+  
   // if(enc.isDouble()){
   //   if(cursor_pos < 100){
   //     return true;
@@ -1914,20 +1904,7 @@ void opt_prt(print cur_opt){
     lst_opt.s1_c1 = cur_opt.s1_c1;
     lcd.setCursor(1, 0); space_prt(14);
     lcd.setCursor(1, 0);
-    switch (cur_opt.s1_c1){
-      case 1:
-        lcd.print(N_B.name);
-        break;
-      case 5:
-        lcd.print(D_brs_night.name);
-        break;
-      case 9:
-        lcd.print(vol.name);
-        break;
-      default:
-        lcd.print(error_msg); // lcd.print(cur_opt.s1_c1);
-        break;
-    }
+    lcd.print(optNames[cur_opt.s1_c1 - 1]);
   }
   if(lst_opt.s1_c2 != cur_opt.s1_c2 || !firstStartFlag){
     lst_opt.s1_c2 = cur_opt.s1_c2;
@@ -1963,20 +1940,7 @@ void opt_prt(print cur_opt){
     lst_opt.s2_c1 = cur_opt.s2_c1;
     lcd.setCursor(1, 1); space_prt(14);
     lcd.setCursor(1, 1);
-    switch (cur_opt.s2_c1){
-      case 2:
-        lcd.print(A_OFF.name);
-        break;
-      case 6:
-        lcd.print(LED_brs_day.name);
-        break;
-      case 10:
-        lcd.print(debug.name);
-        break;
-      default:
-        lcd.print(error_msg); // lcd.print(cur_opt.s2_c1);
-        break;
-    }
+    lcd.print(optNames[cur_opt.s2_c1 - 1]);
   }
   if(lst_opt.s2_c2 != cur_opt.s2_c2 || !firstStartFlag){
     lst_opt.s2_c2 = cur_opt.s2_c2;
@@ -2017,20 +1981,7 @@ void opt_prt(print cur_opt){
     lst_opt.s3_c1 = cur_opt.s3_c1;
     lcd.setCursor(1, 2); space_prt(14);
     lcd.setCursor(1, 2);
-    switch (cur_opt.s3_c1){
-      case 3:
-        lcd.print(A_RST.name);
-        break;
-      case 7:
-        lcd.print(LED_brs_night.name);
-        break;
-      case 11:
-        lcd.print(up.name);
-        break;
-      default:
-        lcd.print(error_msg);
-        break;
-    }
+    lcd.print(optNames[cur_opt.s3_c1 - 1]);
   }
   if(lst_opt.s3_c2 != cur_opt.s3_c2 || !firstStartFlag){
     lst_opt.s3_c2 = cur_opt.s3_c2;
@@ -2065,20 +2016,7 @@ void opt_prt(print cur_opt){
     lst_opt.s4_c1 = cur_opt.s4_c1;
     lcd.setCursor(1, 3); space_prt(14);
     lcd.setCursor(1, 3);
-    switch (cur_opt.s4_c1){
-      case 4:
-        lcd.print(D_brs_day.name);
-        break;
-      case 8:
-        lcd.print(Display_mode.name);
-        break;
-      case 12:
-        // space_prt(14);
-        break;
-      default:
-        lcd.print(error_msg);
-        break;
-    }
+    lcd.print(optNames[cur_opt.s4_c1 - 1]);
   }
   if(lst_opt.s4_c2 != cur_opt.s4_c2 || !firstStartFlag){
     lst_opt.s4_c2 = cur_opt.s4_c2;
@@ -2090,18 +2028,20 @@ void opt_prt(print cur_opt){
         lcd.print(D_brs_day.d_param);
         break;
       case 8:
-        if(cur_opt.s3_c2 == 0){
-          lcd.setCursor(14 + (5 - blink_msg.length()), 3);
-          lcd.print(blink_msg);
-        }
-        else if(cur_opt.s3_c2 == 1){
+        switch (cur_opt.s4_c2){
+          case 0:
+            lcd.setCursor(14 + (5 - blink_msg.length()), 3);
+            lcd.print(blink_msg);
+            break;
+          case 1:
             lcd.setCursor(14 + (5 - slow_msg.length()), 3);
             lcd.print(slow_msg);
-        }
-          else{
+            break;
+          default:
             lcd.setCursor(14 + (5 - off_msg.length()), 3);
             lcd.print(off_msg);
-          }
+            break;
+        }
         break;
       case 12:
         // space_prt(5);
@@ -2142,10 +2082,6 @@ uint8_t opt_fnd(uint8_t pos){
       return up.id;
     case 12:
       return 12;
-    default:
-      break;
-  }
-  switch(pos){
     case 101:
       return N_B.d_param;
     case 102:
@@ -2255,6 +2191,59 @@ void opt_up(){
   opt.s4_c1 = opt_fnd(4); opt.s4_c2 = opt_fnd(104);
   cursor_pos = 1;
   cursor_prt();
+}
+
+void display_blinking(bool ON){
+  static uint8_t param_d;
+  static bool dir;
+  static bool fsf;
+
+  if(ON){
+    switch (Display_mode.d_param){
+      case 0:
+        if(!fsf){
+          fsf = true;
+          disp_blink.start();
+          disp_blink.reset();
+          dir = true;
+        }
+        if(disp_blink.isReady()) {
+          dir ? param_d = LCD_BRIGHT_MAX : param_d = LCD_BRIGHT_MAX - 220;
+          dir = !dir;
+          brightnessRef(param_d, param_d, LED_brs_day.param, LED_brs_night.param);
+        }
+        break;
+      case 1:
+        if(!fsf){
+          fsf = true;
+          disp_pulse.start();
+          disp_pulse.reset();
+        }
+
+        if(disp_pulse.isReady()){
+          dir ? param_d += 5 : param_d -= 5;
+          (param_d <= 5) ? dir = true : ((param_d >= 250) ? dir = false : false);
+          brightnessRef(param_d, param_d, LED_brs_day.param, LED_brs_night.param);
+        }
+        break;
+      default:
+        break;
+    }
+  }
+    else {
+      switch (Display_mode.d_param){
+        case 0:
+          fsf = false;
+          disp_blink.stop();
+          break;
+        case 1:
+          fsf = false;
+          disp_pulse.stop();
+          break;
+        default:
+          break;
+      }
+    }
 }
 
 #endif

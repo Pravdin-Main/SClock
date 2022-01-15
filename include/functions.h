@@ -206,11 +206,9 @@ static const char *dayNames[]  = {
   #define VOLUME_ADDR 18
 
   typedef struct option{
-    uint8_t disp_pos;
     uint8_t param;
     uint8_t d_param;
     uint8_t id;
-    String name;
   };
 
   typedef struct print{
@@ -233,6 +231,7 @@ static const char *dayNames[]  = {
   void opt_prt(struct print);
   uint8_t opt_fnd(uint8_t pos);
   void cursor_prt();
+  void display_blinking(bool);
 #endif
 
 #if (DEBUG == 1)

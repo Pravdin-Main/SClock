@@ -44,9 +44,9 @@
 "Disp nigth"   - tuning of display brightness when it's dark
 "LED day"      - tuning of LED brightness when it's lightly
 "LED night"    - tuning of LED brightness when it's dark
-"Display mode" - blink - when alarm is ON then display is blinking
-               - slow  - when alarm is ON then display is pulsing
-               - OFF   - when alarm is ON then do nothing
+"Display mode" - blink (0) - when alarm is ON then display is blinking
+               - slow (1) - when alarm is ON then display is pulsing
+               - OFF ()  - when alarm is ON then do nothing
 "Volume"       - tuning of bazzer Volume
 "Debug start"  - starting debug mode
 "Up"           - back to top of the option screen

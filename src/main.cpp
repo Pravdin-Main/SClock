@@ -106,11 +106,13 @@ void loop() {
 
     if (alarmIs_ON){ 
       alarmStart(alarm_s);
+      display_blinking(alarmIs_ON);
       // Serial.print("Alarm --- "); Serial.println(alarm_s);
       if (Enc_IsDouble()){
         alarmStop();
         // Serial.println("Alarm stopped");
         alarmIs_ON = false;
+        display_blinking(alarmIs_ON);
       }
     }
   #endif     
