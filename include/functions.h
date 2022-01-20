@@ -124,13 +124,13 @@ void space_prt(uint8_t q);
 
 #if (WEEK_LANG == 0)
 static const char *dayNames[]  = {
-  "Sund",
-  "Mond",
-  "Tues",
-  "Wedn",
-  "Thur",
-  "Frid",
-  "Satu",
+  "Sun",
+  "Mon",
+  "Tue",
+  "Wed",
+  "Thu",
+  "Fri",
+  "Sat",
 };
 static const char *optNames[] = {
   "Night mode",
@@ -141,6 +141,7 @@ static const char *optNames[] = {
   "LED day",
   "LED night",
   "Disp blink",
+  "Time/Date",
   "Volume",
   "Debug start",
   "Up"
@@ -218,6 +219,14 @@ static const char *dayNames[]  = {
     uint8_t s4_c1; uint8_t s4_c2;
   };
 
+  typedef struct time_set{
+    uint16_t year;
+    uint8_t month;
+    uint8_t day;
+    uint8_t hrs;
+    uint8_t mins;
+  };
+
   void options();
   void cursor();
   bool cursor_get_pos();
@@ -232,6 +241,8 @@ static const char *dayNames[]  = {
   uint8_t opt_fnd(uint8_t pos);
   void cursor_prt();
   void display_blinking(bool);
+  void time_date_set();
+  void draw_time_date_set(struct time_set, bool df, uint8_t param);
 #endif
 
 #if (DEBUG == 1)

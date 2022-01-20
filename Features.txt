@@ -30,9 +30,10 @@
 6 |LED day          100|    /SAVE!|     uint8_t
 7 |LED nigth        100|    /SAVE!|     uint8_t
 8 |Display mode   blink|    /SAVE!|     uint8_t        /slow    /OFF
-9 |Volume           100|    /SAVE!|     uint8_t
-10|Debug start     hold|                void
-11|Up             click|                void
+9 |Time/Date set   hold|                void
+10|Volume           100|    /SAVE!|     uint8_t
+11|Debug start     hold|                void
+12|Up             click|                void
 -------------------------------------------
 
 \\OPTION'S DESCRIPTION

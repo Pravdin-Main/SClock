@@ -30,10 +30,11 @@ bool dotFlag;
 bool firstStartFlag = false;
 
 #if (OPTION == 1)
-  option N_B, A_OFF, A_RST, D_brs_day, D_brs_night, LED_brs_day, LED_brs_night, Display_mode, vol, debug, up;
+  option N_B, A_OFF, A_RST, D_brs_day, D_brs_night, LED_brs_day, LED_brs_night, Display_mode, time_date, vol, debug, up;
   static bool opt_status;   // 0 - N_B, 1 - A_OFF, 2 - A_RST, 3 - debug; 4 - display_mode
   static uint8_t cursor_pos = 1;
   print opt,lst_opt;
+  time_set t_d_set;
   const static String error_msg = "error";
   const static String hold_msg = "hold";
   const static String wait_msg = "wait";
@@ -998,8 +999,7 @@ void drawAlarmClock(uint8_t hours, uint8_t minutes, uint8_t x, uint8_t y, bool d
 
   //if (hours > 23 || minutes > 59) return;
   if(set_param == 1 && draw){
-    if (hours / 10 == 0) drawDig(10, x, y);
-    else drawDig(hours / 10, x, y);
+    drawDig(hours / 10, x, y);
     drawDig(hours % 10, x + 4, y);
   }
   else if(set_param == 1 && !draw){
@@ -1501,9 +1501,10 @@ void EEPROM_init(){
             LED_brs_night.id = 7; LED_brs_night.param = 255 - LCD_BRIGHT_MIN; LED_brs_night.d_param = map(255 - LCD_BRIGHT_MIN, 0, 255, 0, 100);
           #endif
           Display_mode.id = 8; Display_mode.param = bitRead(opt_status, 4); Display_mode.d_param = bitRead(opt_status, 4);
-          vol.id = 9; vol.param = VOLUME_DT; vol.d_param = VOLUME_DT;
-          debug.id = 10; debug.param = bitRead(opt_status, 3); debug.d_param = bitRead(opt_status, 3);
-          up.id = 11; up.param = false; up.d_param = false;
+          time_date.id = 9; time_date.param = false; time_date.d_param = false;
+          vol.id = 10; vol.param = VOLUME_DT; vol.d_param = VOLUME_DT;
+          debug.id = 11; debug.param = bitRead(opt_status, 3); debug.d_param = bitRead(opt_status, 3);
+          up.id = 12; up.param = false; up.d_param = false;
           opt_eeprom_save();
         #endif
     }
@@ -1574,18 +1575,18 @@ void options(){
     backToMain.reset();
     opt_ref();
     opt_up();
-    opt_prt(opt);
     cursor_pos = 1;
-    cursor_prt();
-    firstStartFlag = true;
+    opt_prt(opt);
   }
 
   checkInput();
 
-  if (cursor_get_pos()){
-    opt_prt(opt);
+  if (time_date.param) time_date_set();
+  if(!time_date.param){
+    if (cursor_get_pos()){
+      opt_prt(opt);
+    }
   }
-
   if(button.isHolded() || backToMain.isReady()){
     Mode(100);
     firstStartFlag = false;
@@ -1603,6 +1604,7 @@ void opt_ref(){
   LED_brs_day.d_param = map(LED_brs_day.param, 0, 255, 0, 100);
   LED_brs_night.d_param = map(LED_brs_night.param, 0, 255, 0, 100);
   Display_mode.d_param = Display_mode.param;
+  time_date.d_param = time_date.param;
   vol.d_param = map(vol.param, 0, 255, 0, 100);
   debug.d_param = debug.param;
   up.d_param = up.param;
@@ -1634,7 +1636,7 @@ void opt_save(){
     Display_mode.param = Display_mode.d_param;
     (Display_mode.param != 0) ? bitSet(opt_status, 4) : bitClear(opt_status, 4);
     break;
-  case 109:
+  case 110:
     vol.param = vol.d_param;
     EEPROM.update(VOLUME_ADDR, vol.param);
     break;
@@ -1678,7 +1680,7 @@ void opt_change(bool dir){
         else (Display_mode.d_param == 0) ? : --Display_mode.d_param;
       opt.s4_c2 = Display_mode.d_param;
       break;
-    case 109:
+    case 110:
       if(dir) (vol.d_param == 100) ? : ++vol.d_param;
         else (vol.d_param == 0) ? : --vol.d_param;
       opt.s1_c2 = vol.d_param;
@@ -1707,17 +1709,17 @@ void opt_eeprom_dwl(){
   LED_brs_day.id = 6; LED_brs_day.param = EEPROM.read(RGB_BRS_DAY_ADDR); LED_brs_day.d_param = map(EEPROM.read(RGB_BRS_DAY_ADDR), 0, 255, 0, 100);
   LED_brs_night.id = 7; LED_brs_night.param = EEPROM.read(RGB_BRS_NIGHT_ADDR); LED_brs_night.d_param = map(EEPROM.read(RGB_BRS_NIGHT_ADDR), 0, 255, 0, 100);
   Display_mode.id = 8; Display_mode.param = bitRead(opt_status, 4); Display_mode.d_param = bitRead(opt_status, 4);
-  vol.id = 9; vol.param = EEPROM.read(VOLUME_ADDR); vol.d_param = EEPROM.read(VOLUME_ADDR);
-  debug.id = 10; debug.param = bitRead(opt_status, 3); debug.d_param = bitRead(opt_status, 3);
-  up.id = 11; up.param = false; up.d_param = false;
+  time_date.id = 9; time_date.param = false; time_date.d_param = false;
+  vol.id = 10; vol.param = EEPROM.read(VOLUME_ADDR); vol.d_param = EEPROM.read(VOLUME_ADDR);
+  debug.id = 11; debug.param = bitRead(opt_status, 3); debug.d_param = bitRead(opt_status, 3);
+  up.id = 12; up.param = false; up.d_param = false;
 }
 
 bool cursor_get_pos(){
   if(enc.isRight()){
     backToMain.reset();
     if(cursor_pos < 100){
-      cursor_pos++;
-      cursor_pos = constrain(cursor_pos, 1, 11);
+      cursor_pos < 12 ? cursor_pos++ : false;
       cursor_prt();
       if(cursor_pos >= 1 && cursor_pos <= 4 && opt.s1_c1 != opt_fnd(1)){
         opt.s1_c1 = opt_fnd(1); opt.s1_c2 = opt_fnd(101);
@@ -1745,7 +1747,7 @@ bool cursor_get_pos(){
       }
     }
     else if(cursor_pos > 100){
-      if(cursor_pos == 101 || (cursor_pos >= 104 && cursor_pos <= 109)){
+      if(cursor_pos == 101 || (cursor_pos >= 104 && cursor_pos <= 108) || cursor_pos == 110){
         opt_change(true);
         return true;
       }
@@ -1755,8 +1757,7 @@ bool cursor_get_pos(){
   if(enc.isLeft()){
     backToMain.reset();
     if(cursor_pos < 100){
-      cursor_pos--;
-      cursor_pos = constrain(cursor_pos, 1, 11);
+      cursor_pos > 1 ? cursor_pos-- : false;
       cursor_prt();
       if(cursor_pos >= 1 && cursor_pos <= 4 && opt.s1_c1 != opt_fnd(1)){
         opt.s1_c1 = opt_fnd(1); opt.s1_c2 = opt_fnd(101);
@@ -1784,7 +1785,7 @@ bool cursor_get_pos(){
       }
     }
     else if(cursor_pos > 100){
-      if(cursor_pos == 101 || (cursor_pos >= 104 && cursor_pos <= 109)){
+      if(cursor_pos == 101 || (cursor_pos >= 104 && cursor_pos <= 108) || cursor_pos == 110){
         opt_change(false);
         return true;
       }
@@ -1793,8 +1794,6 @@ bool cursor_get_pos(){
 
   if(enc.isHolded()){
     backToMain.reset();
-    if(cursor_pos >= 100){
-      if(cursor_pos == 102 || cursor_pos == 103 || cursor_pos == 110){
         switch (cursor_pos){
           case 102:
             #if (ALARM == 1)
@@ -1808,29 +1807,30 @@ bool cursor_get_pos(){
             #endif
             return true;
             break;
-          case 110:
+          case 109:
+            time_date.param = true;
+            break;
+          case 111:
             #if (DEBUG == 1)
               go_debug();
             #endif
             break;
           default:
+            if(cursor_pos == 101 || (cursor_pos >= 104 && cursor_pos <= 110)){
+              opt_save();
+              if(cursor_pos == 108) display_blinking(false);
+              brightnessRef(D_brs_day.param, D_brs_night.param, LED_brs_day.param, LED_brs_night.param);
+              cursor_pos -= 100;
+              cursor_prt();
+              return true;
+            }
             break;
         }
-      }
-      if(cursor_pos == 101 || (cursor_pos >= 104 && cursor_pos <= 109)){
-        opt_save();
-        if(cursor_pos == 108) display_blinking(false);
-        brightnessRef(D_brs_day.param, D_brs_night.param, LED_brs_day.param, LED_brs_night.param);
-        cursor_pos -= 100;
-        cursor_prt();
-        return true;
-      }
-    }
   }
 
   if(enc.isClick()){
     backToMain.reset();
-    if(cursor_pos == 11){
+    if(cursor_pos == 12){
       opt_up();
       return true;
     }
@@ -1840,7 +1840,7 @@ bool cursor_get_pos(){
           cursor_prt();
         }
         else {
-          if(cursor_pos == 101 || (cursor_pos >= 104 && cursor_pos <= 109)){
+          if(cursor_pos == 101 || (cursor_pos >= 104 && cursor_pos <= 108) || cursor_pos == 110){
             switch (cursor_pos) {
               case 101:
                 N_B.d_param = N_B.param;
@@ -1926,9 +1926,8 @@ void opt_prt(print cur_opt){
         lcd.print(D_brs_night.d_param);
         break;
       case 9:
-        d_cur_param = (String)cur_opt.s1_c2;
-        lcd.setCursor(14 + (5 - d_cur_param.length()), 0);
-        lcd.print(vol.d_param);
+        lcd.setCursor(14 + (5 - hold_msg.length()), 0);
+        lcd.print(hold_msg);
         break;
       default:
         lcd.setCursor(14 + (5 - error_msg.length()), 0);
@@ -1962,14 +1961,9 @@ void opt_prt(print cur_opt){
         lcd.print(LED_brs_day.d_param);
         break;
       case 10:
-        if(cur_opt.s2_c2 == 0){
-          lcd.setCursor(14 + (5 - hold_msg.length()), 1);
-          lcd.print(hold_msg);
-        }
-          else{
-            lcd.setCursor(14 + (5 - wait_msg.length()), 1);
-            lcd.print(wait_msg);
-          }
+        d_cur_param = (String)cur_opt.s2_c2;
+        lcd.setCursor(14 + (5 - d_cur_param.length()), 1);
+        lcd.print(vol.d_param);
         break;
       default:
         lcd.setCursor(14 + (5 - error_msg.length()), 1);
@@ -2003,8 +1997,14 @@ void opt_prt(print cur_opt){
         lcd.print(LED_brs_night.d_param);
         break;
       case 11:
-        lcd.setCursor(14 + (5 - click_msg.length()), 2);
-        lcd.print(click_msg);
+        if(cur_opt.s2_c2 == 0){
+          lcd.setCursor(14 + (5 - hold_msg.length()), 2);
+          lcd.print(hold_msg);
+        }
+          else{
+            lcd.setCursor(14 + (5 - wait_msg.length()), 2);
+            lcd.print(wait_msg);
+          }
         break;
       default:
         lcd.setCursor(14 + (5 - error_msg.length()), 2);
@@ -2044,7 +2044,8 @@ void opt_prt(print cur_opt){
         }
         break;
       case 12:
-        // space_prt(5);
+        lcd.setCursor(14 + (5 - click_msg.length()), 3);
+        lcd.print(click_msg);
         break;
       default:
         lcd.setCursor(14 + (5 - error_msg.length()), 3);
@@ -2075,13 +2076,13 @@ uint8_t opt_fnd(uint8_t pos){
     case 8:
       return Display_mode.id;
     case 9:
-      return vol.id;
+      return time_date.id;
     case 10:
-      return debug.id;
+      return vol.id;
     case 11:
-      return up.id;
+      return debug.id;
     case 12:
-      return 12;
+      return up.id;
     case 101:
       return N_B.d_param;
     case 102:
@@ -2099,13 +2100,13 @@ uint8_t opt_fnd(uint8_t pos){
     case 108:
       return Display_mode.d_param;
     case 109:
-      return vol.d_param;
+      return time_date.d_param;
     case 110:
-      return debug.d_param;
+      return vol.d_param;
     case 111:
-      return up.d_param;
+      return debug.d_param;
     case 112:
-      return 112;
+      return up.d_param;
     default:
       break;
   }
@@ -2244,6 +2245,218 @@ void display_blinking(bool ON){
           break;
       }
     }
+}
+
+void time_date_set(){
+  static bool fsf;
+  bool draw_flag;
+  static uint8_t set_param;
+  if(!fsf){
+    t_d_set.year = now.year();
+    t_d_set.month = now.month();
+    t_d_set.day = now.day();
+    t_d_set.hrs = hrs;
+    t_d_set.mins = mins;
+    fsf = true;
+    draw_flag = true;
+    set_param = 1;
+
+    drawDown_param.stop();
+    drawUp_param.start();
+    drawUp_param.reset();
+
+    lcd.clear();
+    draw_time_date_set(t_d_set, draw_flag, set_param);
+  }
+
+  if(enc.isRight()){
+    switch (set_param){
+    case 1:
+      (t_d_set.hrs >= 23) ? t_d_set.hrs = 0 : ++t_d_set.hrs;
+      break;
+    case 2:
+      (t_d_set.mins >= 59) ? t_d_set.mins = 0 : ++t_d_set.mins;
+      break;
+    case 3:
+      (t_d_set.day >= 31) ? t_d_set.day = 1 : ++t_d_set.day;
+      break;
+    case 4:
+      (t_d_set.month >= 12) ? t_d_set.month = 0 : ++t_d_set.month;
+      break;
+    case 5:
+      (t_d_set.year >= 2099) ? t_d_set.year = 2022 : ++t_d_set.year;
+      break;
+    default:
+      break;
+    }
+    backToMain.reset();
+    draw_time_date_set(t_d_set, true, set_param);
+  } 
+
+  if(enc.isLeft()){
+    switch (set_param){
+    case 1:
+      (t_d_set.hrs > 0) ? --t_d_set.hrs : t_d_set.hrs = 23;
+      break;
+    case 2:
+      (t_d_set.mins > 0) ? --t_d_set.mins : t_d_set.mins = 59;
+      break;
+    case 3:
+      (t_d_set.day > 1) ? --t_d_set.day : t_d_set.day = 31;
+      break;
+    case 4:
+      (t_d_set.month > 1) ? --t_d_set.month : t_d_set.month = 12;
+      break;
+    case 5:
+      (t_d_set.year > 2022) ? --t_d_set.year : t_d_set.year = 2099;
+      break;
+    default:
+      break;
+    }
+    backToMain.reset();
+    draw_time_date_set(t_d_set, true, set_param);
+  } 
+
+  if(enc.isClick()) {
+    set_param == 5 ? set_param = 1 : set_param++;
+    draw_time_date_set(t_d_set, true, set_param);
+    backToMain.reset();
+  }
+
+  if(Enc_IsDouble()) {
+    time_date.param = false;
+    lcd.clear();
+    enc.resetStates();
+    firstStartFlag = false;
+    cursor_pos = 9;
+    opt_prt(opt);
+  }
+
+  if(drawUp_param.isReady()){
+    drawUp_param.stop();
+    drawDown_param.start();
+    drawDown_param.reset();
+    draw_flag = true;
+    draw_time_date_set(t_d_set, draw_flag, set_param);
+  }
+
+  if(drawDown_param.isReady()){
+    drawDown_param.stop();
+    drawUp_param.start();
+    drawUp_param.reset();
+    draw_flag = false;
+    draw_time_date_set(t_d_set, draw_flag, set_param);
+  }
+
+  if(backToMain.isReady() || enc.isHolded()){
+    drawDown_param.stop();
+    drawUp_param.stop();
+    time_date.param = false;
+    fsf = false;
+    backToMain.reset();
+    rtc.adjust(DateTime(t_d_set.year, t_d_set.month, t_d_set.day, t_d_set.hrs, t_d_set.mins));
+    get_time();
+    enc.resetStates();
+    lcd.clear();
+    firstStartFlag = false;
+    cursor_pos = 9;
+    opt_prt(opt);
+  }
+}
+
+void draw_time_date_set(time_set t_d, bool df, uint8_t param){
+  if(param == 1){
+    if(df){
+        lcd.setCursor(0, 0); space_prt(7);
+        lcd.setCursor(0, 1); space_prt(7);
+        drawDig(t_d.hrs / 10, 0, 0);
+        drawDig(t_d.hrs % 10, 4, 0);
+    }
+      else{
+        lcd.setCursor(0, 0); space_prt(7);
+        lcd.setCursor(0, 1); space_prt(7);
+      }
+  }
+    else{
+        lcd.setCursor(0, 0); space_prt(7);
+        lcd.setCursor(0, 1); space_prt(7);
+        drawDig(t_d.hrs / 10, 0, 0);
+        drawDig(t_d.hrs % 10, 4, 0);
+    }
+
+  if(param == 2){
+    if(df){
+        lcd.setCursor(8, 0); space_prt(7);
+        lcd.setCursor(8, 1); space_prt(7);
+        drawDig(t_d.mins / 10, 8, 0);
+        drawDig(t_d.mins % 10, 12, 0);
+    }
+      else{
+        lcd.setCursor(8, 0); space_prt(7);
+        lcd.setCursor(8, 1); space_prt(7);
+      }
+  }
+    else{
+        lcd.setCursor(8, 0); space_prt(7);
+        lcd.setCursor(8, 1); space_prt(7);
+        drawDig(t_d.mins / 10, 8, 0);
+        drawDig(t_d.mins % 10, 12, 0);
+    }
+
+  if(param == 3){
+    if(df){
+        lcd.setCursor(15, 0); space_prt(2);
+        lcd.setCursor(15, 0);
+        t_d.day < 10 ? lcd.print(0) : false;
+        lcd.print(t_d.day);
+    }
+      else{
+        lcd.setCursor(15, 0); space_prt(2);
+      }
+  }
+    else{
+        lcd.setCursor(15, 0); space_prt(2);
+        lcd.setCursor(15, 0);
+        t_d.day < 10 ? lcd.print(0) : false;
+        lcd.print(t_d.day);
+    }
+
+  if(param == 4){
+    if(df){
+        lcd.setCursor(18, 0); space_prt(2);
+        lcd.setCursor(18, 0);
+        t_d.month < 10 ? lcd.print(0) : false;
+        lcd.print(t_d.month);
+    }
+      else{
+        lcd.setCursor(18, 0); space_prt(2);
+      }
+  }
+    else{
+        lcd.setCursor(18, 0); space_prt(2);
+        lcd.setCursor(18, 0);
+        t_d.month < 10 ? lcd.print(0) : false;
+        lcd.print(t_d.month);
+    }
+
+  if(param == 5){
+    if(df){
+        lcd.setCursor(16, 1); space_prt(4);
+        lcd.setCursor(16, 1);
+        lcd.print(t_d.year);
+    }
+      else{
+        lcd.setCursor(16, 1); space_prt(4);
+      }
+  }
+    else{
+        lcd.setCursor(16, 1); space_prt(4);
+        lcd.setCursor(16, 1);
+        lcd.print(t_d.year);
+    }
+
+  drawDots(7, 0, true);
+  lcd.setCursor(17, 0); lcd.print(".");
 }
 
 #endif
