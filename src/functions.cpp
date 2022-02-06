@@ -1526,8 +1526,8 @@ void reload_ch_flg(){
 }
 
 void power_control(){
-  // analogReference(INTERNAL);
-  // analogRead(PC_PIN);
+  analogReference(INTERNAL);
+  analogRead(PC_PIN);
   // uint16_t curAV = analogRead(PC_PIN);
   // // Serial.println("Va: " + (String)curAV);
   // power_level_cur = (int)(curAV * 0.377);
@@ -1557,16 +1557,21 @@ void power_control(){
   // }
 
   
+  // uint16_t curAV = analogRead(PC_PIN);
+  // Serial.println("Va: " + (String)curAV);
+  
+  power_level_cur = (int)(analogRead(PC_PIN) * 0.083);
+  // Serial.println("Vcur: " + (String)power_level_cur);
 
-  power_level_cur = (int)(analogRead(PC_PIN) * 0.377);
   power_level_cur = constrain(power_level_cur, 60, 90);
   
+
   if(power_level_cur != cach_power_state){
     cach_power_state = power_level_cur;
     ch_flg_power = true;
   }
 
-  // analogReference(DEFAULT);
+  analogReference(DEFAULT);
 }
 
 //----------------------OPTIONS-------------------------------------

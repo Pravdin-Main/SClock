@@ -141,6 +141,9 @@ void loop() {
           if(Enc_IsHolded()) Mode(10);
         #else
           if(Enc_IsHolded()) Mode(10);
+          #if (POWER_IND == 2)
+            power_control();
+          #endif
         #endif
         break;
       case 9:
