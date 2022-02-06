@@ -14,6 +14,7 @@
 #define SENS_HUM 1    //0 - hummadity sensor OFF; 1 - hummadity sensor ON
 #define SENS_PRESS 1  //0 - pressure sensor OFF; 1 - pressure sensor ON
 #define GRAPH 0       //0 - graphics displaying OFF; 1 - graphics displaying ON
+#define POWER_IND 2   //0 - power indicator OFF; 1 - low power indicator ON; 2 - percently power indicator ON
 
 //---------------------------------------------------------
 
@@ -47,12 +48,12 @@
 #define PHOTO A3            // Фоторезистор
 #define CLK 12              // пин CLK энкодера
 #define DT 11               // пин DT  энкодера
-#define SW 9                // пин SW энкодера
+#define SW 8                // пин SW энкодера
 #define MHZ_RX 2            // Датчик СО2 RX
 #define MHZ_TX 3            // Датчик СО2 TX
 #define BTN_PIN 4           // Сенсорная кнопка
 #define LED_COM 7           // Катод (анод) RGB светодиода
-#define LED_R 8             // Красноя нога светодиода
+#define LED_R 9             // Красноя нога светодиода
 #define LED_G 6             // Зеленая нога светодиода
 #define LED_B 5             // Синяя нога светодиода
 #define BACKLIGHT 10        // Подсветка дисплея
@@ -118,9 +119,8 @@ void Enc_Reset();
 uint8_t Mode(uint8_t x);
 void drawFlags();
 void EEPROM_init();
-void power_control();
 void reload_ch_flg();
-void space_prt(uint8_t q);
+void space_prt(uint8_t q, uint8_t x, uint8_t y);
 
 #if (WEEK_LANG == 0)
 static const char *dayNames[]  = {
@@ -272,6 +272,31 @@ static const char *dayNames[]  = {
   void init_sens();
   void readSensors();
   void drawSensors();
+#endif
+
+#if(POWER_IND == 1)
+
+  #define R1 67000    // Resistor 1 of divider
+  #define R2 9960    // Resistor 2 of divider
+  #define DIVIDER R2/(R1+R2)
+  #define V_REF 11        // Reference voltage multiplied x10
+  #define PC_LEVEL 62     // Low power level multiplied x10
+  #define PC_IND 33       // Low power symbol
+  #define PC_PIN A1       // Divider pin
+
+  void power_control();
+
+#elif(POWER_IND == 2)
+
+  #define R1 67000    // Resistor 1 of divider
+  #define R2 9960    // Resistor 2 of divider
+  #define DIVIDER R2/(R1+R2)
+  #define V_REF 50        // Reference voltage multiplied x10
+  #define PC_LEVEL 62     // Low power level multiplied x10
+  #define PC_PIN A1       // Divider pin
+
+  void power_control();
+
 #endif
 
 #endif

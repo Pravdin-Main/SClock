@@ -1,14 +1,15 @@
 \\MAIN GOALS:
 
-1 Low power indication
+1 Low power indication --- in progress
 2 Power safe
-3 Add dysplay mode "Option" --- in progress
+3 Add dysplay mode "Option" --- DONE
 4 New algorithm without "blinking" --- DONE
 5 Add "Night and Bright" mode --- DONE
 6 Cut off the bootloader - it's can free 2 KB
-7 Add display blinking
+7 Add display blinking --- DONE
 8 Add module type --- DONE
-9 Make a time tuning option
+9 Make a time tuning option --- DONE
+10 Compress code to 30 KB --- in progress
 -----------------------------------------
 
 \\LIST OF MODULS

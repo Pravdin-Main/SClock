@@ -78,15 +78,14 @@ void setup() {
     // Serial.println("Sensors inition is DONE");
   #endif
 
+  power_control();
+
   draw_main_disp(); // Update time and sensors and display it
 }
 
 //----------------------LOOP--------------------------
 
 void loop() {
-  if(powerControlTimer.isReady()){
-    power_control();
-  }
 
   #if (SENSORS == 1)
     if (sensorsTimer.isReady()) {
@@ -96,21 +95,15 @@ void loop() {
   #endif
 
   #if (ALARM == 1)
-    uint8_t alarm_s;
     if (checkAlarm.isReady() && !alarmIs_ON) {                            // проверить соответствие времени будильника текущему  
-      alarm_s = alarmControl();
-      // Serial.print("Alarm is ON ----  "); Serial.println(alarm_s);
-      if(alarm_s != 0) alarmIs_ON = true;
-      // Serial.println("Alarm checked");
+      if(alarmControl() != 0) alarmIs_ON = true;
     }
 
     if (alarmIs_ON){ 
-      alarmStart(alarm_s);
+      alarmStart(alarmControl());
       display_blinking(alarmIs_ON);
-      // Serial.print("Alarm --- "); Serial.println(alarm_s);
       if (Enc_IsDouble()){
         alarmStop();
-        // Serial.println("Alarm stopped");
         alarmIs_ON = false;
         display_blinking(alarmIs_ON);
       }
@@ -138,6 +131,7 @@ void loop() {
 
           if (drawSensorsTimer.isReady()) {
             drawSensors();  // обновляем показания датчиков на дисплее с периодом SENS_TIME
+            power_control();
             drawFlags();
             // Serial.println("Sensors updated");
           }
