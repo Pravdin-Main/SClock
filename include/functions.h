@@ -294,6 +294,8 @@ static const char *dayNames[]  = {
   #define V_REF 50        // Reference voltage multiplied x10
   #define PC_LEVEL 62     // Low power level multiplied x10
   #define PC_PIN A1       // Divider pin
+  #define BAT_MAX_V 84
+  #define BAT_MIN_V 60
 
   void power_control();
 

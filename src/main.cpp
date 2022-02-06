@@ -78,6 +78,9 @@ void setup() {
     // Serial.println("Sensors inition is DONE");
   #endif
 
+  // analogReference(INTERNAL);
+  // analogRead(PC_PIN);
+
   power_control();
 
   draw_main_disp(); // Update time and sensors and display it
@@ -131,19 +134,23 @@ void loop() {
 
           if (drawSensorsTimer.isReady()) {
             drawSensors();  // обновляем показания датчиков на дисплее с периодом SENS_TIME
-            power_control();
+            PowerControlCheck++;
+            if(PowerControlCheck == 60){  // Every 10 min check power voltage
+              power_control();
+              PowerControlCheck = 0;
+            }
             drawFlags();
-            // Serial.println("Sensors updated");
           }
+        #else
+          #if (POWER_IND == 2)
+            power_control();
+          #endif
         #endif
         #if (ALARM == 1)
           if (Enc_IsDouble() && !alarmIs_ON) Mode(9);
           if(Enc_IsHolded()) Mode(10);
         #else
           if(Enc_IsHolded()) Mode(10);
-          #if (POWER_IND == 2)
-            power_control();
-          #endif
         #endif
         break;
       case 9:

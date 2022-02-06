@@ -1339,7 +1339,7 @@ void drawFlags(){
   #elif(POWER_IND == 2)
     if(ch_flg_power){
       space_prt(6, 13, 3);
-      lcd.print("B:" + (String)map(power_level_cur, 60, 90, 0, 100) + "%");
+      lcd.print("B:" + (String)map(power_level_cur, BAT_MIN_V, BAT_MAX_V, 0, 100) + "%");
       ch_flg_power = false;
 
       space_prt(2, 10, 3);
@@ -1527,7 +1527,11 @@ void reload_ch_flg(){
 
 void power_control(){
   analogReference(INTERNAL);
-  analogRead(PC_PIN);
+
+  for (uint8_t i; i < 50; i++){
+    analogRead(PC_PIN);
+  }
+  
   // uint16_t curAV = analogRead(PC_PIN);
   // // Serial.println("Va: " + (String)curAV);
   // power_level_cur = (int)(curAV * 0.377);
@@ -1557,13 +1561,13 @@ void power_control(){
   // }
 
   
-  // uint16_t curAV = analogRead(PC_PIN);
+  uint16_t curAV = analogRead(PC_PIN);
   // Serial.println("Va: " + (String)curAV);
   
-  power_level_cur = (int)(analogRead(PC_PIN) * 0.083);
+  power_level_cur = (int)(curAV * 0.083);
   // Serial.println("Vcur: " + (String)power_level_cur);
 
-  power_level_cur = constrain(power_level_cur, 60, 90);
+  power_level_cur = constrain(power_level_cur, BAT_MIN_V, BAT_MAX_V);
   
 
   if(power_level_cur != cach_power_state){

@@ -27,6 +27,8 @@
   #endif
 #endif
 
+static uint8_t PowerControlCheck;
+
 GTimer_ms clockTimer(500);                    //Get real time every 0.5 sec
 
 #endif
