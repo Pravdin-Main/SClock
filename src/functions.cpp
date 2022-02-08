@@ -875,28 +875,22 @@ void clockTick() {
         ch_flg_min2 = true;
       }
         else ch_flg_min2 = true;
-      // if (mins <= 59 && mode == 0) drawClock(hrs, mins, 0, 0);
     }
     if (mins > 59) {      // каждый час
       now = rtc.now();
       secs = now.second();
       mins = now.minute();
       hrs = now.hour();
+
       if(hrs % 10 == 0){
         ch_flg_hr1 = true;
         ch_flg_hr2 = true;
       }
-        else { 
-          ch_flg_hr2 = true;
-          ch_flg_min1 = true;
-          ch_flg_min2 = true;
-        }
-      if (hrs > 23) {
-        hrs = 0;
+        else ch_flg_hr2 = true;
+        
+      if (hrs == 0) {
         ch_flg_hr1 = true;
         ch_flg_hr2 = true;
-        ch_flg_min1 = true;
-        ch_flg_min2 = true;
         ch_flg_day = true;
         ch_flg_month = true;
         ch_flg_week = true;
