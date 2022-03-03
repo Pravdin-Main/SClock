@@ -104,11 +104,11 @@ void loop() {
 
     if (alarmIs_ON){ 
       alarmStart(alarmControl());
-      display_blinking(alarmIs_ON);
+      // display_blinking(alarmIs_ON);
       if (Enc_IsDouble()){
         alarmStop();
         alarmIs_ON = false;
-        display_blinking(alarmIs_ON);
+        // display_blinking(alarmIs_ON);
       }
     }
   #endif     

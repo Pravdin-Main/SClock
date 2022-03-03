@@ -7,13 +7,21 @@ static bool change_flag;
 static int8_t hrs;
 static int8_t mins;
 static int8_t secs;
-static bool ch_flg_hr1 = true;
-static bool ch_flg_hr2 = true;
-static bool ch_flg_min1 = true;
-static bool ch_flg_min2 = true;
-static bool ch_flg_day = true;
-static bool ch_flg_month = true;
-static bool ch_flg_week = true;
+static bool ch_flg_clc; //  0 - first symbol of hours, 
+                        //  1 - second symbol of hours
+                        //  2 - first symbol of minuts
+                        //  3 - second symbol of minuts
+                        //  4 - day of month
+                        //  5 - month
+                        //  6 - day of week
+
+// static bool ch_flg_hr1 = true;
+// static bool ch_flg_hr2 = true;
+// static bool ch_flg_min1 = true;
+// static bool ch_flg_min2 = true;
+// static bool ch_flg_day = true;
+// static bool ch_flg_month = true;
+// static bool ch_flg_week = true;
 const static String off_msg = "OFF";
 const static String on_msg = "ON";
 RTC_DS3231 rtc;
@@ -328,55 +336,61 @@ void drawDots(uint8_t x, uint8_t y, bool state) {
 }
 
 void drawClock(uint8_t hours, uint8_t minutes, uint8_t x, uint8_t y) {
-  if(ch_flg_hr1){
+  if(bitRead(ch_flg_clc, 0)){
     space_prt(3, x, y);
     space_prt(3, x, y + 1);
     drawDig(hours / 10, x, y);
     // if (hours / 10 == 0) drawDig(hours / 10, x, y);
     //   else drawDig(hours / 10, x, y);
-    ch_flg_hr1 = false;
+    // ch_flg_hr1 = false;
+    bitClear(ch_flg_clc, 0);
   }
   
-  if(ch_flg_hr2){
+  if(bitRead(ch_flg_clc, 1)){
     space_prt(3, x + 4, y);
     space_prt(3, x + 4, y + 1);
     drawDig(hours % 10, x + 4, y);
-    ch_flg_hr2 = false;
+    // ch_flg_hr2 = false;
+    bitClear(ch_flg_clc, 1);
   }
 
-  if(ch_flg_min1){
+  if(bitRead(ch_flg_clc, 2)){
     space_prt(3, x + 8, y);
     space_prt(3, x + 8, y + 1);
     drawDig(minutes / 10, x + 8, y);
-    ch_flg_min1 = false;
+    // ch_flg_min1 = false;
+    bitClear(ch_flg_clc, 2);
   }
 
-  if(ch_flg_min2){
+  if(bitRead(ch_flg_clc, 3)){
     space_prt(3, x + 12, y);
     space_prt(3, x + 12, y + 1);
     drawDig(minutes % 10, x + 12, y);
-    ch_flg_min2 = false;
+    // ch_flg_min2 = false;
+    bitClear(ch_flg_clc, 3);
   }
 }
 
 void drawData() {
-  if(ch_flg_day){
+  if(bitRead(ch_flg_clc, 4)){
     space_prt(3, 15, 0);
     if (now.day() < 10) lcd.print(0);
     lcd.print(now.day());
     lcd.print(".");
-    ch_flg_day = false;
+    // ch_flg_day = false;
+    bitClear(ch_flg_clc, 4);
   }
   
-  if(ch_flg_month){
+  if(bitRead(ch_flg_clc, 5)){
     space_prt(2, 18, 0);
     if (now.month() < 10) lcd.print(0);
     lcd.print(now.month());
-    ch_flg_month = false;
+    // ch_flg_month = false;
+    bitClear(ch_flg_clc, 5);
   }
   
 
-  if(ch_flg_week){
+  if(bitRead(ch_flg_clc, 6)){
     space_prt(4, 16, 1);
     if (DISP_MODE == 0) {
       lcd.print(now.year());
@@ -385,7 +399,8 @@ void drawData() {
         int dayofweek = now.dayOfTheWeek();
         lcd.print(dayNames[dayofweek]);
       }
-    ch_flg_week = false;
+    // ch_flg_week = false;
+    bitClear(ch_flg_clc, 6);
   }
   
 }
@@ -871,10 +886,13 @@ void clockTick() {
       secs = 0;
       mins++;
       if(mins % 10 == 0){
-        ch_flg_min1 = true;
-        ch_flg_min2 = true;
+        // ch_flg_min1 = true;
+        // ch_flg_min2 = true;
+        bitSet(ch_flg_clc, 2);
+        bitSet(ch_flg_clc, 3);
       }
-        else ch_flg_min2 = true;
+        // else ch_flg_min2 = true;
+        else bitSet(ch_flg_clc, 3);
     }
     if (mins > 59) {      // каждый час
       now = rtc.now();
@@ -883,17 +901,25 @@ void clockTick() {
       hrs = now.hour();
 
       if(hrs % 10 == 0){
-        ch_flg_hr1 = true;
-        ch_flg_hr2 = true;
+        // ch_flg_hr1 = true;
+        // ch_flg_hr2 = true;
+        bitSet(ch_flg_clc, 0);
+        bitSet(ch_flg_clc, 1);
       }
-        else ch_flg_hr2 = true;
+        // else ch_flg_hr2 = true;
+        else bitSet(ch_flg_clc, 1);
         
       if (hrs == 0) {
-        ch_flg_hr1 = true;
-        ch_flg_hr2 = true;
-        ch_flg_day = true;
-        ch_flg_month = true;
-        ch_flg_week = true;
+        bitSet(ch_flg_clc, 0);
+        bitSet(ch_flg_clc, 1);
+        bitSet(ch_flg_clc, 4);
+        bitSet(ch_flg_clc, 5);
+        bitSet(ch_flg_clc, 6);
+        // ch_flg_hr1 = true;
+        // ch_flg_hr2 = true;
+        // ch_flg_day = true;
+        // ch_flg_month = true;
+        // ch_flg_week = true;
       }
     }
 
@@ -1336,8 +1362,10 @@ void drawFlags(){
       lcd.print("B:" + (String)map(power_level_cur, BAT_MIN_V, BAT_MAX_V, 0, 100) + "%");
       ch_flg_power = false;
 
-      space_prt(2, 10, 3);
-      lcd.print((String)power_level_cur);
+      #if (VOLT_DEBUG == 1)
+        space_prt(2, 10, 3);
+        lcd.print((String)power_level_cur);
+      #endif
     }
   #endif  
 }
@@ -1487,13 +1515,20 @@ void EEPROM_init(){
 }
 
 void reload_ch_flg(){
-  ch_flg_hr1 = true;
-  ch_flg_hr2 = true;
-  ch_flg_min1 = true;
-  ch_flg_min2 = true;
-  ch_flg_day = true;
-  ch_flg_month = true;
-  ch_flg_week = true;
+  // ch_flg_hr1 = true;
+  // ch_flg_hr2 = true;
+  // ch_flg_min1 = true;
+  // ch_flg_min2 = true;
+  // ch_flg_day = true;
+  // ch_flg_month = true;
+  // ch_flg_week = true;
+  bitSet(ch_flg_clc, 0);
+  bitSet(ch_flg_clc, 1);
+  bitSet(ch_flg_clc, 2);
+  bitSet(ch_flg_clc, 3);
+  bitSet(ch_flg_clc, 4);
+  bitSet(ch_flg_clc, 5);
+  bitSet(ch_flg_clc, 6);
 
   #if (SENSORS == 1)
     #if(SENS_TEMP == 1)
