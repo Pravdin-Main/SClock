@@ -6,9 +6,9 @@
 //-------------------------- Modules ----------------------
 
 #define CLOCK 1       // 1 - clock type 1; 2 - clock type 2; 3 - clock type 3; 4 - clock type 4
-#define ALARM 1       // 0/1 - alarm module OFF/ON
+#define ALARM 1       // 0/1 - alarm module OFF/ON and they quality (max 3)
 #define OPTION 1      // 0/1 - options OFF/ON
-#define EEPROM_P 0      // 0/1 - EEPROM OFF/ON
+#define EEPROM_P 0    // 0/1 - EEPROM OFF/ON      - do the same in alarm.h
 #define SENSORS 1     // 0/1 - sensors OFF/ON; 1 - sensors ON
 #define SENS_CO2 1    // 0/1 - CO2 sensor OFF/ON
 #define SENS_TEMP 1   // 0/1 - temperature sensor OFF/ON

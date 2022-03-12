@@ -1,6 +1,6 @@
 \\MAIN GOALS:
 
-1 Low power indication --- in progress
+1 Low power indication --- DONE
 2 Power safe
 3 Add dysplay mode "Option" --- DONE
 4 New algorithm without "blinking" --- DONE
