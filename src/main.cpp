@@ -1,50 +1,12 @@
-/*
-  Скетч к проекту "Домашняя метеостанция"
-  Страница проекта (схемы, описания): https://alexgyver.ru/meteoclock/
-  Исходники на GitHub: https://github.com/AlexGyver/MeteoClock
-  Нравится, как написан и закомментирован код? Поддержи автора! https://alexgyver.ru/support_alex/
-  Автор: AlexGyver Technologies, 2018
-  http://AlexGyver.ru/
-*/
-
-/*
-  Время и дата устанавливаются атвоматически при загрузке прошивки (такие как на компьютере)
-  График всех величин за час и за сутки (усреднённые за каждый час)
-  В модуле реального времени стоит батарейка, которая продолжает отсчёт времени после выключения/сброса питания
-  Как настроить время на часах. У нас есть возможность автоматически установить время на время загрузки прошивки, поэтому:
-	- Ставим настройку RESET_CLOCK на 1
-  - Прошиваемся
-  - Сразу ставим RESET_CLOCK 0
-  - И прошиваемся ещё раз
-  - Всё
-*/
-
-/* Версия 1.5
-  - Добавлено управление яркостью
-  - Яркость дисплея и светодиода СО2 меняется на максимальную и минимальную в зависимости от сигнала с фоторезистора
-  Подключите датчик (фоторезистор) по схеме. Теперь на экране отладки справа на второй строчке появится величина сигнала
-  с фоторезистора.
-*/
-
-/*
-0 часы и данные
-  1 график температуры за час
-  2 график температуры за сутки
-  3 график влажности за час
-  4 график влажности за сутки
-  5 график давления за час
-  6 график давления за сутки
-  7 график углекислого за час
-  8 график углекислого за сутки
-*/
-
 #include "main.h"
 //------------------------SETUP-----------------------
 
 void setup() {
   // Serial.begin(9600);
 
-  EEPROM_init();
+  #if (EEPROM_P == 1)
+    EEPROM_init();
+  #endif
 
   pinMode(BACKLIGHT, OUTPUT);
   pinMode(LED_COM, OUTPUT);
@@ -54,7 +16,6 @@ void setup() {
 
   setLED(0, 0, 0);
 
-  // digitalWrite(LED_COM, LED_MODE);
   analogWrite(BACKLIGHT, LCD_BRIGHT_MAX);
 
   #if (CLOCK ==  1)
@@ -78,9 +39,6 @@ void setup() {
     // Serial.println("Sensors inition is DONE");
   #endif
 
-  // analogReference(INTERNAL);
-  // analogRead(PC_PIN);
-
   power_control();
 
   draw_main_disp(); // Update time and sensors and display it
@@ -94,20 +52,24 @@ void loop() {
     if (sensorsTimer.isReady()) {
       readSensors();             // Read sensors with frequency of SENS_TIME
       // Serial.println("Check sensors is DONE");
-  }
+    }
   #endif
 
-  #if (ALARM == 1)
-    if (checkAlarm.isReady() && !alarmIs_ON) {                            // проверить соответствие времени будильника текущему  
-      if(alarmControl() != 0) alarmIs_ON = true;
+  #if (ALARM >= 1)
+    if (checkAlarm.isReady() && alarmIs_ON == 0) {       // проверить соответствие времени будильника текущему  
+      alarmIs_ON = alarmControl();
     }
 
-    if (alarmIs_ON){ 
-      alarmStart(alarmControl());
+    if (alarmIs_ON != 0){ 
+      #if (ALARM == 1)
+        alarmStart();
+      #else
+        alarmStart(alarmIs_ON);
+      #endif
       // display_blinking(alarmIs_ON);
-      if (Enc_IsDouble()){
+      if (BTN_IsHolded()){
         alarmStop();
-        alarmIs_ON = false;
+        alarmIs_ON = 0;
         // display_blinking(alarmIs_ON);
       }
     }
@@ -120,12 +82,12 @@ void loop() {
       plotSensorsTick();
     #endif 
 
-    switch (Mode(0)) {
+    switch (Mode(100)) {
       case 0:
         #if (SENSORS == 1)
 
           #if (GRAPH == 1)
-            if(Mode(0) != 9 && Mode(0) != 10){                         // тут внутри несколько таймеров для пересчёта графиков (за час, за день и прогноз)
+            if(100) != 9 && Mode(100) != 10){                         // тут внутри несколько таймеров для пересчёта графиков (за час, за день и прогноз)
             modesTick();
           }
             #else
@@ -146,15 +108,15 @@ void loop() {
             power_control();
           #endif
         #endif
-        #if (ALARM == 1)
-          if (Enc_IsDouble() && !alarmIs_ON) Mode(9);
-          if(Enc_IsHolded()) Mode(10);
+        #if (ALARM >= 1)
+          if (Enc_IsDouble()) Mode(9);
+          if (Enc_IsHolded()) Mode(10);
         #else
           if(Enc_IsHolded()) Mode(10);
         #endif
         break;
       case 9:
-        #if (ALARM == 1)
+        #if (ALARM >= 1)
           alarmTuning();
         #else
           draw_main_disp();

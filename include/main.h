@@ -4,17 +4,19 @@
 //-------------------------- Libraries --------------------
 
 #include <Arduino.h>
-// #include <Wire.h>
 #include "functions.h"
 #include <GyverTimer.h>
 //---------------------------------------------------------
 
 // ------------------------- НАСТРОЙКИ --------------------
-// #define RESET_CLOCK 0       // сброс часов на время загрузки прошивки (для модуля с несъёмной батарейкой). Не забудь поставить 0 и прошить ещё раз!
-#if (ALARM == 1)
+#if (ALARM >= 1)
   #define ALARMCHECK 10000    // частота проверки времени будильника
   GTimer_ms checkAlarm(ALARMCHECK);             //Check alarm's time 10 sec
-  bool alarmIs_ON = false;
+  #if (ALARM == 1)
+    bool alarmIs_ON = false;
+  #else
+    uint8_t alarmIs_ON = false;
+  #endif
 #endif
 
 #if (SENSORS == 1)

@@ -5,21 +5,23 @@
 
 //-------------------------- Modules ----------------------
 
-#define CLOCK 1       //1 - clock type 1; 2 - clock type 2; 3 - clock type 3; 4 - clock type 4
-#define ALARM 0       //0 - alarm module OFF; 1 - alarm module ON
-#define OPTION 1      //0 - options OFF; 1 - options ON
-#define SENSORS 1     //0 - sensors OFF; 1 - sensors ON
-#define SENS_CO2 1    //0 - CO2 sensor OFF; 1 - CO2 sensor ON
-#define SENS_TEMP 1   //0 - temperature sensor OFF; 1 - remperature sensor ON
-#define SENS_HUM 1    //0 - hummadity sensor OFF; 1 - hummadity sensor ON
-#define SENS_PRESS 1  //0 - pressure sensor OFF; 1 - pressure sensor ON
-#define GRAPH 0       //0 - graphics displaying OFF; 1 - graphics displaying ON
-#define POWER_IND 2   //0 - power indicator OFF; 1 - low power indicator ON; 2 - percently power indicator ON
+#define CLOCK 1       // 1 - clock type 1; 2 - clock type 2; 3 - clock type 3; 4 - clock type 4
+#define ALARM 1       // 0/1 - alarm module OFF/ON
+#define OPTION 1      // 0/1 - options OFF/ON
+#define EEPROM_P 0      // 0/1 - EEPROM OFF/ON
+#define SENSORS 1     // 0/1 - sensors OFF/ON; 1 - sensors ON
+#define SENS_CO2 1    // 0/1 - CO2 sensor OFF/ON
+#define SENS_TEMP 1   // 0/1 - temperature sensor OFF/ON
+#define SENS_HUM 1    // 0/1 - hummadity sensor OFF/ON
+#define SENS_PRESS 1  // 0/1 - pressure sensor OFF/ON
+#define POWER_IND 2   // 0 - power indicator OFF; 1 - low power indicator ON; 2 - percently power indicator ON
 
 //---------------------------------------------------------
 
-#define EEPROM_KEY_ADDR 0
-#define EEPROM_KEY 190
+  #if (EEPROM_P == 1)
+    #define EEPROM_KEY_ADDR 0
+    #define EEPROM_KEY 190
+  #endif
 #define DEBUG 0             // вывод на дисплей лог инициализации датчиков при запуске. Для дисплея 1602 не работает! Но дублируется через порт!
 #define RESET_CLOCK 0       // сброс часов на время загрузки прошивки (для модуля с несъёмной батарейкой). Не забудь поставить 0 и прошить ещё раз!
 #define VOLT_DEBUG 0        // displaying a value of current voltage
@@ -96,14 +98,14 @@ void display_init();
   #include <MHZ19_uart.h>
 #endif
 
-void drawDig(uint8_t dig, uint8_t x, uint8_t y);
-void drawDots(uint8_t x, uint8_t y, bool state);
-void drawClock(uint8_t hours, uint8_t minutes, uint8_t x, uint8_t y);
+void drawDig(uint8_t, uint8_t, uint8_t);
+void drawDots(uint8_t, uint8_t, bool);
+void drawClock(uint8_t, uint8_t, uint8_t, uint8_t);
 void drawData();
 void loadClock();
 
-void setLED(uint8_t color, uint8_t lbd, uint8_t lbn);
-void brightnessRef(uint8_t dbd, uint8_t dbn, uint8_t lbd, uint8_t lbn);
+void setLED(uint8_t, uint8_t, uint8_t);
+void brightnessRef(uint8_t, uint8_t, uint8_t, uint8_t);
 void brightnessControl();
 
 void clockTick();
@@ -116,12 +118,17 @@ bool Enc_IsClick();
 bool Enc_IsDouble();
 bool Enc_IsHolded();
 void Enc_Reset();
+bool BTN_IsHolded();
 
-uint8_t Mode(uint8_t x);
+uint8_t Mode(uint8_t);
 void drawFlags();
-void EEPROM_init();
+
+#if (EEPROM_P == 1)
+  void EEPROM_init();
+#endif
+
 void reload_ch_flg();
-void space_prt(uint8_t q, uint8_t x, uint8_t y);
+void space_prt(uint8_t, uint8_t, uint8_t);
 
 #if (WEEK_LANG == 0)
 static const char *dayNames[]  = {
@@ -161,9 +168,11 @@ static const char *dayNames[]  = {
 
 
 
-#if (ALARM == 1)
+#if (ALARM >= 1)
   #include "sound.h"
   #include "alarm.h"
+
+  #include <EEPROM.h>
 
   #define ALARM1_HOUR_ADDR 1
   #define ALARM1_MIN_ADDR 2
@@ -181,19 +190,27 @@ static const char *dayNames[]  = {
   #define ALARM3_STATUS_ADDR 12
 
   void alarmTuning();
-  uint8_t alarmControl();
-  void alarmStart(uint8_t set);
-  void drawAlarmClock(uint8_t hours, uint8_t minutes, uint8_t x, uint8_t y, bool draw);
+  #if (ALARM == 1)
+    bool alarmControl();
+    void alarmStart();
+  #else
+    uint8_t alarmControl();
+    void alarmStart(uint8_t);
+  #endif
+  void drawAlarmDisplay(bool);
   void alarmStop();
+  void alarmPrint(alarm, uint8_t, uint8_t);
 
-  struct alarmTuner {
-    int8_t hour;
-    int8_t minute;
-    int8_t sound;
-    bool status;
-  };
-  void alarm_OFF();
-  void alarm_RST();
+  // struct alarmTuner {
+  //   int8_t hour;
+  //   int8_t minute;
+  //   int8_t sound;
+  //   bool status;
+  // };
+  #if (OPTION == 1)
+    void alarm_OFF();
+    void alarm_RST();
+  #endif
 #else
   #include <EEPROM.h>
 #endif
@@ -221,11 +238,11 @@ static const char *dayNames[]  = {
   };
 
   typedef struct time_set{
-    uint16_t year;
     uint8_t month;
     uint8_t day;
     uint8_t hrs;
     uint8_t mins;
+    uint16_t year;
   };
 
   void options();
@@ -233,17 +250,20 @@ static const char *dayNames[]  = {
   bool cursor_get_pos();
   void opt_save();
   void opt_ref();
-  void opt_change(bool dir);
-  void opt_eeprom_save();
-  void opt_eeprom_dwl();
+  void opt_change(bool);
+  #if (EEPROM_P == 1)
+    void opt_eeprom_save();
+    void opt_eeprom_dwl();
+  #endif
   void processing();
   void opt_up();
+  // void opt_switch_disp(uint8_t);
   void opt_prt(struct print);
-  uint8_t opt_fnd(uint8_t pos);
+  uint8_t opt_fnd(uint8_t);
   void cursor_prt();
-  void display_blinking(bool);
+  // void display_blinking(bool);
   void time_date_set();
-  void draw_time_date_set(struct time_set, bool df, uint8_t param);
+  void draw_time_date_set(struct time_set, bool, uint8_t);
 #endif
 
 #if (DEBUG == 1)
@@ -261,14 +281,6 @@ static const char *dayNames[]  = {
   #define PRESS_MAX 100       // Максимальный уровень отображения графика давления
   #define CO2_MIN 300         // Минимальный уровень отображения графика СО2
   #define CO2_MAX 2000        // Максимальный уровень отображения графика СО2
-
-  #if(GRAPH == 1)
-    void modesTick();
-    void drawPlot(uint8_t pos, uint8_t row, uint8_t width, uint8_t height, int min_val, int max_val, int *plot_array, uint8_t label);
-    void loadPlot();
-    void redrawPlot();
-    void plotSensorsTick();
-  #endif
 
   void init_sens();
   void readSensors();

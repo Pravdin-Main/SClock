@@ -8,8 +8,12 @@ void play_sound(uint8_t sound){
   if(!fs_sound_flag && sound != 0){
     AutoOFF.start();
     AutoOFF.reset();
-    play = new QBPlay(speaker_pin);
+    play = new QBPlay(SPEAKER_PIN);
     switch (sound) {
+      case 0:
+        fs_sound_flag = false;
+        AutoOFF.stop();
+        return;
       case 1:
         play->start((__FlashStringHelper*) sound1, 1);
         break;
@@ -25,12 +29,9 @@ void play_sound(uint8_t sound){
     }
     fs_sound_flag = true;
   }
-  if(sound == 0) {
+  if(sound == 0 || AutoOFF.isReady()) {
     fs_sound_flag = false;
     AutoOFF.stop();
   }
-
-  if(!AutoOFF.isReady()){
-    play->touch();
-  }
+    else play->touch();
 }

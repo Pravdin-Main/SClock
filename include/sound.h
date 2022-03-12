@@ -5,7 +5,7 @@
 #include <QBPlay.h>
 #include <GyverTimer.h>
 
-const byte speaker_pin = A2;
+#define SPEAKER_PIN A2
 
 // Тема из Star Wars
 const char sound1[] PROGMEM = "MNT150L2O3CGP16L16FEDL2>C<GP16L16FEDL2>C<G\
