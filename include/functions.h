@@ -35,7 +35,7 @@
 #define DELAY 1500          // Delay of displaying "done" message
 
 #define WEEK_LANG 0         // язык дня недели: 0 - английский, 1 - русский (транслит)
-#define LED_MODE 0          // тип RGB светодиода: 0 - главный катод, 1 - главный анод
+#define LED_MODE 1          // тип RGB светодиода: 0 - главный катод, 1 - главный анод
 #define BLUE_YELLOW 0       // 0 - BLUE; 1 - YELLOW
 
 #if (LED_MODE)
@@ -49,17 +49,17 @@
 // Пины
 // #define PHOTO_PIN 0         // пин фоторезистора
 #define PHOTO A3            // Фоторезистор
-#define CLK 12              // пин CLK энкодера
-#define DT 11               // пин DT  энкодера
-#define SW 8                // пин SW энкодера
+#define CLK 8              // пин CLK энкодера
+#define DT 7               // пин DT  энкодера
+#define SW 6                // пин SW энкодера
 #define MHZ_RX 2            // Датчик СО2 RX
 #define MHZ_TX 3            // Датчик СО2 TX
 #define BTN_PIN 4           // Сенсорная кнопка
-#define LED_COM 7           // Катод (анод) RGB светодиода
+// #define LED_COM 7           // Катод (анод) RGB светодиода
 #define LED_R 9             // Красноя нога светодиода
-#define LED_G 6             // Зеленая нога светодиода
-#define LED_B 5             // Синяя нога светодиода
-#define BACKLIGHT 10        // Подсветка дисплея
+#define LED_G 10             // Зеленая нога светодиода
+#define LED_B 11             // Синяя нога светодиода
+#define BACKLIGHT 5        // Подсветка дисплея
 
 
 // Управление яркостью
