@@ -81,7 +81,9 @@ void setup() {
   // analogReference(INTERNAL);
   // analogRead(PC_PIN);
 
-  power_control();
+  #if (POWER_IND != 0)
+    power_control();
+  #endif
 
   draw_main_disp(); // Update time and sensors and display it
 }
@@ -134,11 +136,15 @@ void loop() {
 
           if (drawSensorsTimer.isReady()) {
             drawSensors();  // обновляем показания датчиков на дисплее с периодом SENS_TIME
-            PowerControlCheck++;
-            if(PowerControlCheck == 60){  // Every 10 min check power voltage
-              power_control();
-              PowerControlCheck = 0;
-            }
+
+            #if (POWER_IND != 0)
+              PowerControlCheck++;
+              if(PowerControlCheck == 60){  // Every 10 min check power voltage
+                power_control();
+                PowerControlCheck = 0;
+              }
+            #endif
+            
             drawFlags();
           }
         #else

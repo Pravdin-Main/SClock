@@ -1512,19 +1512,27 @@ void reload_ch_flg(){
 
   #if (ALARM == 1)
     ch_flg_alarm = true;
-  #endif
+  #endif 
 
-  #if(POWER_IND != 0)
+  #if (POWER_IND != 0)
     ch_flg_power = true;
   #endif
 }
 
-void power_control(){
-  analogReference(INTERNAL);
+#if(POWER_IND != 0)
+  void power_control(){
+    analogReference(INTERNAL);
 
-  for (uint8_t i; i < 50; i++){
-    analogRead(PC_PIN);
-  }
+    for (uint8_t i; i < 50; i++){
+      analogRead(PC_PIN);
+    }
+
+// void power_control(){
+// analogReference(INTERNAL);
+
+//   for (uint8_t i; i < 50; i++){
+//     analogRead(PC_PIN);
+//   }
   
   // uint16_t curAV = analogRead(PC_PIN);
   // // Serial.println("Va: " + (String)curAV);
@@ -1554,23 +1562,23 @@ void power_control(){
   //   ch_flg_power = true;
   // }
 
-  
-  uint16_t curAV = analogRead(PC_PIN);
-  // Serial.println("Va: " + (String)curAV);
-  
-  power_level_cur = (int)(curAV * 0.083);
-  // Serial.println("Vcur: " + (String)power_level_cur);
 
-  power_level_cur = constrain(power_level_cur, BAT_MIN_V, BAT_MAX_V);
+    uint16_t curAV = analogRead(PC_PIN);
+    // Serial.println("Va: " + (String)curAV);
   
+    power_level_cur = (int)(curAV * 0.083);
+    // Serial.println("Vcur: " + (String)power_level_cur);
 
-  if(power_level_cur != cach_power_state){
-    cach_power_state = power_level_cur;
-    ch_flg_power = true;
+    power_level_cur = constrain(power_level_cur, BAT_MIN_V, BAT_MAX_V);
+  
+    if(power_level_cur != cach_power_state){
+      cach_power_state = power_level_cur;
+      ch_flg_power = true;
+    }
+    analogReference(DEFAULT);
   }
+  #endif
 
-  analogReference(DEFAULT);
-}
 
 //----------------------OPTIONS-------------------------------------
 

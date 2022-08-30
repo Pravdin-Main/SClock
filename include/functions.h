@@ -7,14 +7,14 @@
 
 #define CLOCK 1       //1 - clock type 1; 2 - clock type 2; 3 - clock type 3; 4 - clock type 4
 #define ALARM 0       //0 - alarm module OFF; 1 - alarm module ON
-#define OPTION 1      //0 - options OFF; 1 - options ON
-#define SENSORS 1     //0 - sensors OFF; 1 - sensors ON
+#define OPTION 0      //0 - options OFF; 1 - options ON
+#define SENSORS 0     //0 - sensors OFF; 1 - sensors ON
 #define SENS_CO2 1    //0 - CO2 sensor OFF; 1 - CO2 sensor ON
 #define SENS_TEMP 1   //0 - temperature sensor OFF; 1 - remperature sensor ON
 #define SENS_HUM 1    //0 - hummadity sensor OFF; 1 - hummadity sensor ON
 #define SENS_PRESS 1  //0 - pressure sensor OFF; 1 - pressure sensor ON
 #define GRAPH 0       //0 - graphics displaying OFF; 1 - graphics displaying ON
-#define POWER_IND 2   //0 - power indicator OFF; 1 - low power indicator ON; 2 - percently power indicator ON
+#define POWER_IND 0   //0 - power indicator OFF; 1 - low power indicator ON; 2 - percently power indicator ON
 
 //---------------------------------------------------------
 
